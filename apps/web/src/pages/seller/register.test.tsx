@@ -113,7 +113,7 @@ describe("business registration form", () => {
     expect(await screen.findByText("Enter the business owner's name")).toBeInTheDocument();
     expect(screen.getByText(/at least 30 characters/)).toBeInTheDocument();
     expect(screen.getByText("Choose a county", { selector: "p" })).toBeInTheDocument();
-    expect(screen.getByText("Enter a valid Kenyan mobile number")).toBeInTheDocument();
+    expect(screen.getByText(/Enter a valid WhatsApp number/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Business name/)).toHaveValue("Cakes by Maria");
     expect(screen.getByLabelText(/^WhatsApp Business number/)).toHaveValue("12345");
     expect(api.find("POST", "/api/businesses")).toHaveLength(0);

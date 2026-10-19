@@ -4,6 +4,7 @@ import { createTokenVerifier } from "../../apps/api/src/auth/token-verifier.ts";
 import { createPrismaUserStore } from "../../apps/api/src/auth/user-store.ts";
 import { getPrisma } from "../../apps/api/src/lib/prisma.ts";
 import type { MediaStorage } from "../../apps/api/src/storage/media-storage.ts";
+import { fakePng } from "../../apps/api/src/test/fake-storage.ts";
 import {
   API_PORT,
   API_URL,
@@ -35,6 +36,19 @@ const storage: MediaStorage = {
   async listFolder(prefix) {
     const folder = prefix.replace(/\/+$/, "") + "/";
     return [...stored].filter((p) => p.startsWith(folder)).map((p) => p.slice(folder.length));
+  },
+  async listObjects(prefix) {
+    const folder = prefix.replace(/\/+$/, "") + "/";
+    return [...stored]
+      .filter((p) => p.startsWith(folder))
+      .map((p) => ({ name: p.slice(folder.length), createdAt: new Date() }));
+  },
+  async download(path) {
+    // Whatever the browser "uploaded" reads back as a valid 800x1000 PNG.
+    return stored.has(path) ? fakePng(800, 1000) : null;
+  },
+  async remove(paths) {
+    for (const path of paths) stored.delete(path);
   },
 };
 

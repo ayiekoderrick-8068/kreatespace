@@ -51,7 +51,7 @@ test("an invited seller registers, an admin approves, and the business goes publ
   await seller.getByLabel(/^City or town/).fill("Westlands");
   await seller.getByLabel(/^WhatsApp Business number/).fill("12345");
   await seller.getByRole("button", { name: "Save and continue" }).click();
-  await expect(seller.getByText("Enter a valid Kenyan mobile number")).toBeVisible();
+  await expect(seller.getByText(/Enter a valid WhatsApp number/)).toBeVisible();
   await expect(seller.getByLabel(/^Business name/)).toHaveValue(businessName);
   await expectNoHorizontalScroll(seller);
 
