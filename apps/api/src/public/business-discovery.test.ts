@@ -76,14 +76,14 @@ describe.skipIf(!hasDatabase)("business profiles in discovery", () => {
     expect(body.categories).toHaveLength(1);
   });
 
-  it("caps the gallery and says when there is more", async () => {
+  it("shows a full portfolio (the 20-creation limit fits within the page size)", async () => {
     const { businessId } = await buildBusiness(prisma, { name: "Prolific" });
-    for (let i = 0; i < 26; i += 1) {
+    for (let i = 0; i < 20; i += 1) {
       await buildCreation(prisma, { businessId, title: `Cake ${i}` });
     }
     const body = (await profile("prolific")).body.business;
-    expect(body.creations).toHaveLength(24);
-    expect(body.hasMoreCreations).toBe(true);
+    expect(body.creations).toHaveLength(20);
+    expect(body.hasMoreCreations).toBe(false);
   });
 
   it("returns nothing for businesses that are not public, creations included", async () => {

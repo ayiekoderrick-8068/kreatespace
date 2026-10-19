@@ -101,29 +101,47 @@ export async function createCreation(
   const business = await requireApprovedBusiness(prisma, userId);
   await requireActiveCategory(prisma, details.categoryId, details.occasionId);
 
-  return prisma.$transaction(async (tx) => {
-    const creation = await tx.creation.create({
-      data: {
-        businessId: business.id,
-        revisions: {
-          create: {
-            version: 1,
-            title: details.title,
-            description: details.description,
-            categoryId: details.categoryId,
-            occasionId: details.occasionId ?? null,
+  try {
+    return await prisma.$transaction(async (tx) => {
+      // One request at a time per business, so the count below cannot go stale.
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${"creations:" + business.id}))::text`;
+      const { used } = await getUsage(tx, business.id);
+      if (used >= MAX_ACTIVE_CREATIONS) throw limitReached();
+
+      const creation = await tx.creation.create({
+        data: {
+          businessId: business.id,
+          revisions: {
+            create: {
+              version: 1,
+              title: details.title,
+              description: details.description,
+              categoryId: details.categoryId,
+              occasionId: details.occasionId ?? null,
+            },
           },
         },
-      },
+      });
+      await recordAudit(tx, {
+        actorId: userId,
+        action: "creation.created",
+        entityType: "Creation",
+        entityId: creation.id,
+      });
+      return { creationId: creation.id };
     });
-    await recordAudit(tx, {
-      actorId: userId,
-      action: "creation.created",
-      entityType: "Creation",
-      entityId: creation.id,
-    });
-    return { creationId: creation.id };
-  });
+  } catch (error) {
+    // The database trigger is the last line of defence if anything got past the check above.
+    if (String((error as Error)?.message).includes("creation_limit_reached")) throw limitReached();
+    throw error;
+  }
+}
+
+function limitReached() {
+  return conflict(
+    "CREATION_LIMIT_REACHED",
+    `You have used all ${MAX_ACTIVE_CREATIONS} free creations. Archive one to add another.`,
+  );
 }
 
 export interface CreationSummary {

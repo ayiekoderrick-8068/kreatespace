@@ -111,8 +111,12 @@ describe.skipIf(!hasDatabase)("public creation visibility", () => {
 
   describe("ordering and pagination", () => {
     async function seed(count: number) {
-      const { businessId } = await buildBusiness(prisma, { name: "Maria" });
+      // A business may only hold 20 active creations, so spread them over several businesses.
+      let businessId = "";
       for (let i = 1; i <= count; i += 1) {
+        if (i % 10 === 1) {
+          businessId = (await buildBusiness(prisma, { name: `Maria ${i}` })).businessId;
+        }
         await buildCreation(prisma, {
           businessId,
           title: `Cake ${String(i).padStart(2, "0")}`,
