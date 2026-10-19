@@ -11,6 +11,7 @@ import { adminBusinessRoutes } from "./businesses/admin-routes.js";
 import { categoryRoutes, sellerBusinessRoutes } from "./businesses/routes.js";
 import { adminInvitationRoutes, inviteeInvitationRoutes } from "./invitations/routes.js";
 import { discoveryRoutes } from "./discovery/routes.js";
+import { savedRoutes } from "./discovery/saved-routes.js";
 import { publicRoutes } from "./public/routes.js";
 import type { MediaStorage } from "./storage/media-storage.js";
 
@@ -84,10 +85,18 @@ export function createApp(
     app.use("/api/categories", categoryRoutes(businessDeps));
     app.use("/api/public", publicRoutes(businessDeps));
     app.use("/api/public", discoveryRoutes(businessDeps));
+    app.use("/api/me/saved", savedRoutes(businessDeps));
     app.use("/api/businesses", sellerBusinessRoutes(businessDeps));
   } else {
     app.use(
-      ["/api/admin", "/api/invitations", "/api/categories", "/api/businesses", "/api/public"],
+      [
+        "/api/admin",
+        "/api/invitations",
+        "/api/categories",
+        "/api/businesses",
+        "/api/public",
+        "/api/me/saved",
+      ],
       unavailable,
     );
   }
