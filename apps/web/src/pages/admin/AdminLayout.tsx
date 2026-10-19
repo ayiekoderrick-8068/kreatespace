@@ -30,6 +30,9 @@ export function AdminLayout() {
         <NavLink to="/admin/imports" className={tab}>
           Imports
         </NavLink>
+        <NavLink to="/admin/deletions" className={tab}>
+          Deletions
+        </NavLink>
         <NavLink to="/admin/analytics" className={tab}>
           Analytics
         </NavLink>

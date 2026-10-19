@@ -246,9 +246,30 @@ export async function listDeletionsForAdmin(
     prisma.accountDeletionRequest.count({ where }),
   ]);
 
+  // What happened to each request, oldest first. Only the action and the time: the audit records
+  // of a deletion never hold personal details.
+  const trail = await prisma.auditLog.findMany({
+    where: {
+      entityType: "AccountDeletionRequest",
+      entityId: { in: rows.map((row) => row.id) },
+    },
+    orderBy: { createdAt: "asc" },
+    select: { entityId: true, action: true, createdAt: true },
+  });
+  const reviewers = await prisma.user.findMany({
+    where: { id: { in: rows.flatMap((row) => (row.reviewedById ? [row.reviewedById] : [])) } },
+    select: { id: true, fullName: true },
+  });
+
   const items = await Promise.all(
     rows.map(async (row) => ({
       ...toView(row),
+      reviewedAt: row.reviewedAt,
+      cancelledAt: row.cancelledAt,
+      reviewedBy: reviewers.find((r) => r.id === row.reviewedById)?.fullName ?? null,
+      history: trail
+        .filter((entry) => entry.entityId === row.id)
+        .map(({ action, createdAt }) => ({ action, at: createdAt })),
       roleAtRequest: row.roleAtRequest,
       // Live numbers while the account still exists; a finished request keeps only its summary.
       effects: row.userId ? await describeEffects(prisma, row.userId).catch(() => null) : null,

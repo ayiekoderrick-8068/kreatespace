@@ -533,6 +533,43 @@ describe.skipIf(!hasDatabase)("deleting an account", () => {
         expect((await request(app).get("/api/admin/deletions").set(bearer(who))).status).toBe(403);
       }
     });
+
+    it("shows what happened to a request: who decided, when, and the steps taken, with no personal detail", async () => {
+      const { seller } = await sellerWithBusiness({ name: "Maria Cakes" });
+      const created = await request_(seller);
+      const admin = await actor("ADMIN");
+      await request(app)
+        .post(`/api/admin/deletions/${created.body.request.id}/decision`)
+        .set(bearer(admin))
+        .send({ action: "REJECT", note: "Unpaid invoice" });
+
+      const refused = await request(app)
+        .get("/api/admin/deletions?status=REJECTED")
+        .set(bearer(admin));
+      expect(refused.status).toBe(200);
+      const [item] = refused.body.items;
+      expect(item).toMatchObject({
+        status: "REJECTED",
+        reviewNote: "Unpaid invoice",
+        reviewedBy: "Test ADMIN",
+      });
+      expect(item.reviewedAt).toBeTruthy();
+      expect(item.history.map((h: { action: string }) => h.action)).toEqual([
+        "account.deletion_requested",
+        "account.deletion_rejected",
+      ]);
+      expect(Object.keys(item.history[0]).sort()).toEqual(["action", "at"]);
+
+      // Closed requests leave the default "waiting" list.
+      const waiting = await request(app).get("/api/admin/deletions").set(bearer(admin));
+      expect(waiting.body.items).toHaveLength(0);
+    });
+
+    it("rejects an unknown status filter", async () => {
+      const admin = await actor("ADMIN");
+      const res = await request(app).get("/api/admin/deletions?status=NOPE").set(bearer(admin));
+      expect(res.status).toBe(400);
+    });
   });
 
   describe("asking for your data", () => {
