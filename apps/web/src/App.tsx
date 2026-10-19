@@ -34,6 +34,15 @@ const CreationReviewPage = lazyPage(
   () => import("./pages/admin/CreationReviewPage"),
   "CreationReviewPage",
 );
+const PackagesAdminPage = lazyPage(
+  () => import("./pages/admin/PackagesAdminPages"),
+  "PackagesAdminPage",
+);
+const PackageReviewPage = lazyPage(
+  () => import("./pages/admin/PackagesAdminPages"),
+  "PackageReviewPage",
+);
+const PackagesPage = lazyPage(() => import("./pages/seller/PackagesPage"), "PackagesPage");
 const InvitationsPage = lazyPage(() => import("./pages/admin/InvitationsPage"), "InvitationsPage");
 const InvitePage = lazyPage(() => import("./pages/InvitePage"), "InvitePage");
 const SellerDashboardPage = lazyPage(
@@ -75,6 +84,14 @@ export const routes: RouteObject[] = [
         element: (
           <RequireRole roles={["SELLER"]}>
             <SellerDashboardPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: "/seller/packages",
+        element: (
+          <RequireRole roles={["SELLER"]}>
+            <PackagesPage />
           </RequireRole>
         ),
       },
@@ -123,6 +140,8 @@ export const routes: RouteObject[] = [
           { path: "businesses/:id", element: <BusinessReviewPage /> },
           { path: "creations", element: <CreationsPage /> },
           { path: "creations/:id", element: <CreationReviewPage /> },
+          { path: "packages", element: <PackagesAdminPage /> },
+          { path: "packages/:id", element: <PackageReviewPage /> },
           { path: "invitations", element: <InvitationsPage /> },
         ],
       },

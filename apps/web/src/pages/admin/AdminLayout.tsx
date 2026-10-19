@@ -14,6 +14,9 @@ export function AdminLayout() {
         <NavLink to="/admin/creations" className={tab}>
           Creations
         </NavLink>
+        <NavLink to="/admin/packages" className={tab}>
+          Packages
+        </NavLink>
         <NavLink to="/admin/invitations" className={tab}>
           Invitations
         </NavLink>
