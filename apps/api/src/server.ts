@@ -31,6 +31,7 @@ if (env.SUPABASE_URL && env.DATABASE_URL) {
     console.warn("SUPABASE_SERVICE_ROLE_KEY not set — image uploads are disabled");
   }
   deps.webUrl = env.WEB_URL;
+  deps.apiUrl = env.API_URL;
 } else {
   console.warn("SUPABASE_URL or DATABASE_URL not set — authenticated routes are disabled");
 }

@@ -8,6 +8,7 @@ const production = {
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
   CORS_ORIGIN: "https://kreatespace.co.ke",
   WEB_URL: "https://kreatespace.co.ke",
+  API_URL: "https://api.kreatespace.co.ke",
   TRUST_PROXY: "1",
 };
 
@@ -47,6 +48,9 @@ describe("loadEnv", () => {
     ],
     ["an insecure origin", { CORS_ORIGIN: "http://kreatespace.co.ke" }, /must use https/],
     ["the web address left at its default", { WEB_URL: undefined }, /WEB_URL/],
+    ["no public API address", { API_URL: undefined }, /API_URL/],
+    ["an insecure API address", { API_URL: "http://api.kreatespace.co.ke" }, /API_URL/],
+    ["a localhost API address", { API_URL: "https://localhost:4000" }, /API_URL/],
     ["an insecure web address", { WEB_URL: "http://kreatespace.co.ke" }, /WEB_URL/],
     ["a localhost web address", { WEB_URL: "https://localhost:5173" }, /WEB_URL/],
   ])("refuses to start in production with %s", (_name, overrides, expected) => {
@@ -57,7 +61,7 @@ describe("loadEnv", () => {
 
   it("lists every problem at once so they can all be fixed in one go", () => {
     expect(() => loadEnv({ NODE_ENV: "production" })).toThrow(
-      /DATABASE_URL.*SUPABASE_URL.*SUPABASE_SERVICE_ROLE_KEY.*CORS_ORIGIN.*WEB_URL/s,
+      /DATABASE_URL.*SUPABASE_URL.*SUPABASE_SERVICE_ROLE_KEY.*API_URL.*CORS_ORIGIN.*WEB_URL/s,
     );
   });
 

@@ -95,7 +95,7 @@ const signedInRoutes: [Method, string][] = [
 ];
 
 /** Open to everyone on purpose: published content, filters, and anonymous analytics events. */
-const publicRouteCount = 11; // 6 discovery, 1 business profile, categories, occasions, event intake, invitation lookup
+const publicRouteCount = 16; // 6 discovery, 1 business profile, 5 search-engine routes, categories, occasions, event intake, invitation lookup
 
 const fill = (path: string) => path.replace(ID, randomUUID()).replace(IMAGE, randomUUID());
 const harness = hasDatabase ? createTestHarness() : skippedHarness();

@@ -20,6 +20,7 @@ import { adminImportRoutes, type ImporterDeps } from "./imports/routes.js";
 import { createSafeFetcher } from "./imports/safe-fetch.js";
 import { adminPackageRoutes, sellerPackageRoutes } from "./packages/routes.js";
 import { publicRoutes } from "./public/routes.js";
+import { seoRoutes } from "./seo/routes.js";
 import type { MediaStorage } from "./storage/media-storage.js";
 import {
   adminWebsiteRequestRoutes,
@@ -35,6 +36,8 @@ export interface AppDeps {
   storage?: MediaStorage;
   /** Public base URL of the web app, used to build invitation links. */
   webUrl?: string;
+  /** Public base URL of this API, used for link-preview image addresses. */
+  apiUrl?: string;
   /** Set to false in tests to switch off per-IP rate limiting. */
   rateLimiting?: boolean;
   /** Website importer settings; tests replace the fetcher to reach a local server. */
@@ -108,6 +111,17 @@ export function createApp(
           { windowMs: 10 * 60_000, max: 200 },
           deps.rateLimiting !== false,
         ),
+      }),
+    );
+    app.use(
+      "/api/public/seo",
+      seoRoutes({
+        prisma: deps.prisma,
+        storage: deps.storage,
+        urls: {
+          web: (deps.webUrl ?? "http://localhost:5173").replace(/\/+$/, ""),
+          api: deps.apiUrl?.replace(/\/+$/, ""),
+        },
       }),
     );
     app.use("/api/public", publicRoutes(businessDeps));

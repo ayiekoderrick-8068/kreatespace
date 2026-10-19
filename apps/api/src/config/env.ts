@@ -9,6 +9,8 @@ const envSchema = z.object({
    * per-IP rate limits see the real client address instead of the proxy's.
    */
   TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  /** Public URL of this API (used for stable link-preview image addresses). */
+  API_URL: z.url().optional(),
   /** Public URL of the web app (used in invitation links). */
   WEB_URL: z.url().default("http://localhost:5173"),
   SUPABASE_URL: z.url().optional(),
@@ -61,6 +63,9 @@ function assertProductionSafe(env: Env, source: NodeJS.ProcessEnv): void {
   if (!env.SUPABASE_URL) problems.push("SUPABASE_URL is required");
   if (!env.SUPABASE_SERVICE_ROLE_KEY)
     problems.push("SUPABASE_SERVICE_ROLE_KEY is required for image storage");
+  if (!env.API_URL || !env.API_URL.startsWith("https://") || isLocal(env.API_URL)) {
+    problems.push("API_URL must be the public https address of this API");
+  }
   if (!source.CORS_ORIGIN) problems.push("CORS_ORIGIN must be set to the web app's address");
   if (env.CORS_ORIGIN.some((origin) => origin === "*" || isLocal(origin))) {
     problems.push("CORS_ORIGIN must list only the real web app origin(s), not * or localhost");
