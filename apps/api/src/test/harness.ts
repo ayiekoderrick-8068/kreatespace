@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import request from "supertest";
 import type { UserRole } from "@kreatespace/shared";
 import { createApp, type AppDeps } from "../app.js";
 import { InvalidTokenError, type TokenVerifier } from "../auth/token-verifier.js";
@@ -92,7 +93,50 @@ export function createTestHarness(overrides: Partial<AppDeps> = {}) {
     };
   }
 
-  return { app, prisma, actor, newcomer, files: fake.files, categoryId, businessDetails };
+  /** Uploads a (fake) image for the owner's business and returns its storage path. */
+  async function uploadImage(owner: TestActor): Promise<string> {
+    const res = await request(app)
+      .post("/api/businesses/me/uploads")
+      .set(bearer(owner))
+      .send({ contentType: "image/jpeg", size: 100_000 });
+    if (res.status !== 201)
+      throw new Error(`upload failed: ${res.status} ${JSON.stringify(res.body)}`);
+    fake.files.add(res.body.path);
+    return res.body.path;
+  }
+
+  /** Registers a complete business through the API and submits it. Returns its id. */
+  async function submittedBusiness(
+    owner: TestActor,
+    overrides: Record<string, unknown> = {},
+  ): Promise<string> {
+    const create = await request(app)
+      .post("/api/businesses")
+      .set(bearer(owner))
+      .send(await businessDetails(overrides));
+    if (create.status !== 201) throw new Error(`create failed: ${JSON.stringify(create.body)}`);
+    const photo = await uploadImage(owner);
+    const patch = await request(app)
+      .patch("/api/businesses/me")
+      .set(bearer(owner))
+      .send({ portfolioPaths: [photo], termsAccepted: true, contentAuthorization: true });
+    if (patch.status !== 200) throw new Error(`patch failed: ${JSON.stringify(patch.body)}`);
+    const submit = await request(app).post("/api/businesses/me/submit").set(bearer(owner));
+    if (submit.status !== 200) throw new Error(`submit failed: ${JSON.stringify(submit.body)}`);
+    return create.body.businessId;
+  }
+
+  return {
+    app,
+    prisma,
+    actor,
+    newcomer,
+    files: fake.files,
+    categoryId,
+    businessDetails,
+    uploadImage,
+    submittedBusiness,
+  };
 }
 
 export const bearer = (actor: TestActor) => ({ Authorization: `Bearer ${actor.token}` });

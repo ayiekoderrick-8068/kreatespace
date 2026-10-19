@@ -7,6 +7,7 @@ import type { Env } from "./config/env.js";
 import type { PrismaClient } from "./generated/prisma/client.js";
 import { HttpError } from "./http/errors.js";
 import { createRateLimiter } from "./http/rate-limit.js";
+import { adminBusinessRoutes } from "./businesses/admin-routes.js";
 import { categoryRoutes, sellerBusinessRoutes } from "./businesses/routes.js";
 import { adminInvitationRoutes, inviteeInvitationRoutes } from "./invitations/routes.js";
 import type { MediaStorage } from "./storage/media-storage.js";
@@ -72,6 +73,7 @@ export function createApp(env: Pick<Env, "CORS_ORIGIN">, deps: AppDeps = {}): Ex
       ),
     };
     app.use("/api/admin/invitations", adminInvitationRoutes(routeDeps));
+    app.use("/api/admin/businesses", adminBusinessRoutes(businessDeps));
     app.use("/api/invitations", inviteeInvitationRoutes(routeDeps));
     app.use("/api/categories", categoryRoutes(businessDeps));
     app.use("/api/businesses", sellerBusinessRoutes(businessDeps));
