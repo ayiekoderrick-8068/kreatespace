@@ -158,6 +158,7 @@ export interface PlatformAnalytics {
     businessesPending: number;
     creationsPending: number;
     packagesPending: number;
+    websiteRequestsNew: number;
   };
   topBusinesses: {
     businessId: string;
@@ -191,6 +192,7 @@ export async function getPlatformAnalytics(
     businessesPending,
     creationsPending,
     packagesPending,
+    websiteRequestsNew,
   ] = await Promise.all([
     prisma.$queryRaw<{ day: string; type: EventType; n: number }[]>(Prisma.sql`
         SELECT to_char(${localDay("createdAt")}, 'YYYY-MM-DD') AS day,
@@ -211,6 +213,7 @@ export async function getPlatformAnalytics(
     prisma.business.count({ where: { status: "PENDING" } }),
     prisma.creation.count({ where: { status: "PENDING" } }),
     prisma.servicePackage.count({ where: { reviewState: "PENDING", status: "ACTIVE" } }),
+    prisma.websiteRequest.count({ where: { status: "NEW" } }),
   ]);
 
   const totals = emptyTotals();
@@ -262,7 +265,7 @@ export async function getPlatformAnalytics(
     businesses: await countByStatus(businesses),
     creations: await countByStatus(creations),
     users: Object.fromEntries(users.map((row) => [row.role, row._count._all])),
-    queues: { businessesPending, creationsPending, packagesPending },
+    queues: { businessesPending, creationsPending, packagesPending, websiteRequestsNew },
     topBusinesses: ranked.flatMap(([businessId, counts]) => {
       const info = infoOf.get(businessId);
       return info ? [{ businessId, name: info.name, slug: info.slug, ...counts }] : [];

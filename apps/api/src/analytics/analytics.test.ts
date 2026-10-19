@@ -157,7 +157,11 @@ describe.skipIf(!hasDatabase)("seller and platform analytics", () => {
     expect(res.body.totals).toMatchObject({ whatsappClicks: 1, businessViews: 2 });
     expect(res.body.businesses).toMatchObject({ APPROVED: 1, PENDING: 1 });
     expect(res.body.creations).toMatchObject({ APPROVED: 1, PENDING: 1 });
-    expect(res.body.queues).toMatchObject({ businessesPending: 1, creationsPending: 1 });
+    expect(res.body.queues).toMatchObject({
+      businessesPending: 1,
+      creationsPending: 1,
+      websiteRequestsNew: 0,
+    });
     expect(res.body.topBusinesses[0]).toMatchObject({ name: "Alpha Bakes", whatsappClicks: 1 });
 
     const seller = await sellerWithBusiness({ name: "Gamma" });

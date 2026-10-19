@@ -19,6 +19,10 @@ import { inquiryEventRoutes } from "./inquiries/routes.js";
 import { adminPackageRoutes, sellerPackageRoutes } from "./packages/routes.js";
 import { publicRoutes } from "./public/routes.js";
 import type { MediaStorage } from "./storage/media-storage.js";
+import {
+  adminWebsiteRequestRoutes,
+  sellerWebsiteRequestRoutes,
+} from "./website-requests/routes.js";
 
 export interface AppDeps {
   /** Authentication dependencies; when absent, protected routes respond with 503. */
@@ -108,6 +112,8 @@ export function createApp(
     app.use("/api/admin/packages", adminPackageRoutes(businessDeps));
     app.use("/api/admin/analytics", adminAnalyticsRoutes(businessDeps));
     app.use("/api/analytics", sellerAnalyticsRoutes(businessDeps));
+    app.use("/api/admin/website-requests", adminWebsiteRequestRoutes(businessDeps));
+    app.use("/api/website-requests", sellerWebsiteRequestRoutes(businessDeps));
     app.use("/api/businesses", sellerBusinessRoutes(businessDeps));
   } else {
     app.use(
@@ -122,6 +128,7 @@ export function createApp(
         "/api/occasions",
         "/api/packages",
         "/api/analytics",
+        "/api/website-requests",
       ],
       unavailable,
     );

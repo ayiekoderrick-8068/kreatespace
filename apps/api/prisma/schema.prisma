@@ -140,6 +140,7 @@ model Business {
   creations         Creation[]
   packages          ServicePackage[]
   inquiryEvents     InquiryEvent[]
+  websiteRequests   WebsiteRequest[]
 
   @@index([status])
   @@map("businesses")
@@ -396,4 +397,46 @@ model InquiryEvent {
   @@index([creationId, type])
   @@index([type, createdAt])
   @@map("inquiry_events")
+}
+
+enum WebsiteRequestType {
+  NEW_WEBSITE
+  REDESIGN
+  ONLINE_SHOP
+  OTHER
+}
+
+enum WebsiteRequestStatus {
+  NEW
+  IN_REVIEW
+  QUOTED
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  CANCELLED
+}
+
+/// A seller's request for help building or improving a website. A business may have only one open
+/// request at a time (enforced by a partial unique index in the migration).
+model WebsiteRequest {
+  id           String               @id @default(uuid()) @db.Uuid
+  businessId   String               @db.Uuid
+  type         WebsiteRequestType
+  description  String
+  budget       String?
+  timeline     String?
+  status       WebsiteRequestStatus @default(NEW)
+  /// Reply shown to the seller.
+  responseNote String?
+  /// Private to administrators; never sent to sellers.
+  adminNotes   String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  closedAt     DateTime?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([status, createdAt])
+  @@map("website_requests")
 }
