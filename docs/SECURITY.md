@@ -33,7 +33,7 @@ is still advisable before the service grows beyond the pilot.
 | 7   | The page chrome could scroll sideways on tablets and phones, and scrollable tables were not keyboard-reachable                              | Usability and accessibility, not a data risk                                                            | Fixed                                                                                                                                                                              | `e2e/tests/layout.spec.ts`, `accessibility.spec.ts`                                                               |
 
 Every API route is also covered by an **authorization matrix** (`security/authorization.test.ts`):
-all 55 role-restricted routes answer 401 with no valid sign-in and 403 to every other role, wrong-role
+all 57 role-restricted routes answer 401 with no valid sign-in and 403 to every other role, wrong-role
 writes change nothing, and a source-code count fails the build if a route is added without being
 classified.
 
@@ -70,11 +70,22 @@ supplied by people. Controls, each covered by tests in `apps/api/src/imports/`:
 
 - **Content security policy allows inline styles** (`style-src 'unsafe-inline'`), because the app
   sets a few style attributes (such as image aspect ratios). Scripts are restricted to the site.
-- **No multi-factor sign-in is enforced** for administrators. Supabase supports it; decide before
-  launch whether to require it.
+- **Administrator two-step verification is enforced** by the API on every administrator route
+  (authenticator app, `aal2`), and production refuses to start with `ADMIN_MFA_REQUIRED=false`.
+  Customers and business owners are not required to use it. A lost authenticator is reset by the
+  owner with `admin:reset-mfa` after confirming the person's identity.
+- **Account deletion** needs a sign-in less than 10 minutes old (checked by the server, not the
+  page), waits 14 days, and for business owners needs an administrator's approval. It is carried out
+  by the maintenance job, never by a web request. See `docs/ACCOUNT_DELETION.md`. Restoring an old
+  backup brings deleted accounts back; re-apply the completed deletions after any restore.
 - **Rate limits are per instance by default** (kept in memory). Run a single API instance, or set
   `RATE_LIMIT_STORE=postgres` so several instances share their counters (one small database write
-  per API request; if the database is unreachable, requests are let through rather than refused).
+  per API request). If the shared counters cannot be reached, behaviour depends on the route:
+  public browsing and anonymous analytics carry on without limits (an outage should not take the
+  site down), while invitation-token checks and every signed-in action that changes data (uploads,
+  imports, account deletion and data export) answer `503 RATE_LIMIT_UNAVAILABLE` with
+  `Retry-After: 30` until the counters return. Sign-in and password recovery are Supabase's own
+  endpoints and use Supabase's limits, not these.
 - **Imports run inside the API process** and are not durable: a restart interrupts them (they are
   marked failed and can be restarted).
 - **No error-tracking service** and no web application firewall are installed; the host's basic

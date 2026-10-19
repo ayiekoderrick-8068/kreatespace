@@ -19,7 +19,7 @@ describe.skipIf(!hasDatabase)("shared rate-limit counters", () => {
   function instance(max: number, windowMs = 60_000) {
     const store = createPgRateLimitStore(prisma, "t:");
     const app = express();
-    app.use(createRateLimiter({ windowMs, max }, true, store));
+    app.use(createRateLimiter({ windowMs, max }, true, { store }));
     app.get("/", (_req, res) => res.json({ ok: true }));
     return app;
   }
@@ -56,12 +56,16 @@ describe.skipIf(!hasDatabase)("shared rate-limit counters", () => {
   it("keeps different limiters apart", async () => {
     const one = express();
     one.use(
-      createRateLimiter({ windowMs: 60_000, max: 1 }, true, createPgRateLimitStore(prisma, "one:")),
+      createRateLimiter({ windowMs: 60_000, max: 1 }, true, {
+        store: createPgRateLimitStore(prisma, "one:"),
+      }),
     );
     one.get("/", (_req, res) => res.json({}));
     const two = express();
     two.use(
-      createRateLimiter({ windowMs: 60_000, max: 1 }, true, createPgRateLimitStore(prisma, "two:")),
+      createRateLimiter({ windowMs: 60_000, max: 1 }, true, {
+        store: createPgRateLimitStore(prisma, "two:"),
+      }),
     );
     two.get("/", (_req, res) => res.json({}));
     expect((await request(one).get("/")).status).toBe(200);
@@ -75,10 +79,55 @@ describe.skipIf(!hasDatabase)("shared rate-limit counters", () => {
       "x:",
     );
     const app = express();
-    app.use(createRateLimiter({ windowMs: 60_000, max: 1 }, true, broken));
+    app.use(createRateLimiter({ windowMs: 60_000, max: 1 }, true, { store: broken }));
     app.get("/", (_req, res) => res.json({ ok: true }));
     expect((await request(app).get("/")).status).toBe(200);
     expect((await request(app).get("/")).status).toBe(200);
+  });
+
+  it("refuses with 503, rather than allowing unlimited use, on routes marked fail-closed", async () => {
+    const broken = createPgRateLimitStore(
+      { $queryRaw: () => Promise.reject(new Error("db down")) } as never,
+      "x:",
+    );
+    const app = express();
+    app.use(
+      createRateLimiter({ windowMs: 60_000, max: 1 }, true, { store: broken, failClosed: true }),
+    );
+    app.get("/", (_req, res) => res.json({ ok: true }));
+    const res = await request(app).get("/");
+    expect(res.status).toBe(503);
+    expect(res.body.error.code).toBe("RATE_LIMIT_UNAVAILABLE");
+    expect(res.headers["retry-after"]).toBe("30");
+    expect(JSON.stringify(res.body)).not.toMatch(/db down/);
+  });
+
+  it("recovers by itself when the counters come back", async () => {
+    let down = true;
+    const real = createPgRateLimitStore(prisma, "r:");
+    const flaky = {
+      ...real,
+      init: real.init!.bind(real),
+      increment: (key: string) =>
+        down ? Promise.reject(new Error("db down")) : real.increment(key),
+    };
+    const app = express();
+    app.use(
+      createRateLimiter({ windowMs: 60_000, max: 1 }, true, { store: flaky, failClosed: true }),
+    );
+    app.get("/", (_req, res) => res.json({ ok: true }));
+    expect((await request(app).get("/")).status).toBe(503);
+    down = false;
+    expect((await request(app).get("/")).status).toBe(200);
+    expect((await request(app).get("/")).status).toBe(429);
+  });
+
+  it("keeps in-memory limiters unaffected by the fail-closed setting", async () => {
+    const app = express();
+    app.use(createRateLimiter({ windowMs: 60_000, max: 1 }, true, { failClosed: true }));
+    app.get("/", (_req, res) => res.json({ ok: true }));
+    expect((await request(app).get("/")).status).toBe(200);
+    expect((await request(app).get("/")).status).toBe(429);
   });
 
   it("removes only counters whose window has ended", async () => {

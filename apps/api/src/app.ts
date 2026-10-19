@@ -76,12 +76,14 @@ export function createApp(
 
   // Each limiter gets its own counters, named by the order it is created in.
   let limiterCount = 0;
-  const limiter = (options: RateLimitOptions) =>
-    createRateLimiter(
-      options,
-      deps.rateLimiting !== false,
-      deps.rateLimitStore?.(`limiter${limiterCount++}:`),
-    );
+  // If shared counters break, public browsing and analytics beacons carry on unlimited, but the
+  // routes where abuse does real harm refuse (503) until they are back: invitation-token guessing,
+  // and every signed-in action that changes data (uploads, imports, account deletion and export).
+  const limiter = (options: RateLimitOptions, { failClosed = false } = {}) =>
+    createRateLimiter(options, deps.rateLimiting !== false, {
+      store: deps.rateLimitStore?.(`limiter${limiterCount++}:`),
+      failClosed,
+    });
 
   // A broad per-IP ceiling for every other API route; sensitive routes add tighter limits.
   app.use("/api", limiter({ windowMs: 60_000, max: 300 }));
@@ -113,13 +115,13 @@ export function createApp(
       prisma: deps.prisma,
       authenticate,
       webUrl: deps.webUrl ?? "http://localhost:5173",
-      limiter: limiter({ windowMs: 15 * 60_000, max: 30 }),
+      limiter: limiter({ windowMs: 15 * 60_000, max: 30 }, { failClosed: true }),
     };
     const businessDeps = {
       prisma: deps.prisma,
       authenticate,
       storage: deps.storage,
-      writeLimiter: limiter({ windowMs: 15 * 60_000, max: 100 }),
+      writeLimiter: limiter({ windowMs: 15 * 60_000, max: 100 }, { failClosed: true }),
     };
     app.use("/api/admin/invitations", adminInvitationRoutes(routeDeps));
     app.use("/api/admin/businesses", adminBusinessRoutes(businessDeps));
