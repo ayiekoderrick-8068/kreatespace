@@ -4,6 +4,7 @@ import { countySchema, creationListQuerySchema } from "@kreatespace/shared";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import { parseInput } from "../http/errors.js";
 import type { MediaStorage } from "../storage/media-storage.js";
+import { getHomeData } from "./home.js";
 import { getCreation, listCities, listCreations, listFilters, listRelated } from "./service.js";
 
 /** Short shared caching: image URLs are signed for an hour, so a brief cache is safe. */
@@ -23,6 +24,11 @@ export function discoveryRoutes({
     const query = parseInput(creationListQuerySchema, req.query);
     res.set("Cache-Control", PUBLIC_CACHE);
     res.json(await listCreations(prisma, storage, query));
+  });
+
+  router.get("/home", async (_req, res) => {
+    res.set("Cache-Control", PUBLIC_CACHE);
+    res.json(await getHomeData(prisma, storage));
   });
 
   router.get("/filters", async (_req, res) => {
