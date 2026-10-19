@@ -10,6 +10,7 @@ import { createRateLimiter } from "./http/rate-limit.js";
 import { adminBusinessRoutes } from "./businesses/admin-routes.js";
 import { categoryRoutes, sellerBusinessRoutes } from "./businesses/routes.js";
 import { adminInvitationRoutes, inviteeInvitationRoutes } from "./invitations/routes.js";
+import { publicRoutes } from "./public/routes.js";
 import type { MediaStorage } from "./storage/media-storage.js";
 
 export interface AppDeps {
@@ -76,9 +77,13 @@ export function createApp(env: Pick<Env, "CORS_ORIGIN">, deps: AppDeps = {}): Ex
     app.use("/api/admin/businesses", adminBusinessRoutes(businessDeps));
     app.use("/api/invitations", inviteeInvitationRoutes(routeDeps));
     app.use("/api/categories", categoryRoutes(businessDeps));
+    app.use("/api/public", publicRoutes(businessDeps));
     app.use("/api/businesses", sellerBusinessRoutes(businessDeps));
   } else {
-    app.use(["/api/admin", "/api/invitations", "/api/categories", "/api/businesses"], unavailable);
+    app.use(
+      ["/api/admin", "/api/invitations", "/api/categories", "/api/businesses", "/api/public"],
+      unavailable,
+    );
   }
 
   app.use((_req, res) => {

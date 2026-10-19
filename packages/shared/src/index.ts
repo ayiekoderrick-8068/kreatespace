@@ -6,5 +6,6 @@ export * from "./businesses.js";
 export * from "./invitations.js";
 export * from "./kenya.js";
 export * from "./review.js";
+export * from "./whatsapp.js";
 export * from "./phone.js";
 export * from "./roles.js";
