@@ -34,8 +34,8 @@ export function SellerRegisterPage() {
             check the status at any time.
           </FormMessage>
         </div>
-        <Link to="/" className="mt-6 inline-block font-medium text-terracotta underline">
-          Back to home
+        <Link to="/seller" className="mt-6 inline-block font-medium text-terracotta underline">
+          Go to your dashboard
         </Link>
       </main>
     );
@@ -49,8 +49,8 @@ export function SellerRegisterPage() {
         <p className="mt-3 flex items-center gap-2">
           Status: <StatusBadge status={business.business.status} />
         </p>
-        <Link to="/" className="mt-6 inline-block font-medium text-terracotta underline">
-          Back to home
+        <Link to="/seller" className="mt-6 inline-block font-medium text-terracotta underline">
+          Go to your dashboard
         </Link>
       </main>
     );

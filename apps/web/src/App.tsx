@@ -13,6 +13,8 @@ import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { SellerDashboardPage } from "./pages/seller/SellerDashboardPage";
+import { SellerEditPage } from "./pages/seller/SellerEditPage";
 import { SellerRegisterPage } from "./pages/seller/SellerRegisterPage";
 
 export const routes: RouteObject[] = [
@@ -25,6 +27,22 @@ export const routes: RouteObject[] = [
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/invite/:token", element: <InvitePage /> },
+      {
+        path: "/seller",
+        element: (
+          <RequireRole roles={["SELLER"]}>
+            <SellerDashboardPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: "/seller/edit",
+        element: (
+          <RequireRole roles={["SELLER"]}>
+            <SellerEditPage />
+          </RequireRole>
+        ),
+      },
       {
         path: "/seller/register",
         element: (
