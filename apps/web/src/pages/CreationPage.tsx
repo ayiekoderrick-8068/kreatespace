@@ -4,13 +4,14 @@ import {
   isSafeWebUrl,
   supportsQuoteRequests,
 } from "@kreatespace/shared";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useParams } from "react-router";
 import { FormMessage, SecondaryButton } from "../components/forms";
 import { GallerySkeleton, Masonry, Photo } from "../components/gallery";
 import { LazyQuoteRequestForm } from "../components/LazyQuoteRequestForm";
 import { SaveButton } from "../components/SaveButton";
 import { ApiError } from "../lib/api";
+import { summarize, usePageMeta } from "../lib/page-meta";
 import { trackEvent, useTrackView } from "../lib/events";
 import { useCreation, useRelatedCreations } from "../lib/queries";
 
@@ -32,10 +33,18 @@ export function CreationPage() {
   );
   const [selected, setSelected] = useState(0);
 
-  const title = creation.data?.title;
-  useEffect(() => {
-    if (title) document.title = `${title} — KreateSpace`;
-  }, [title]);
+  const detail = creation.data;
+  usePageMeta(
+    detail
+      ? {
+          title: detail.title,
+          description: summarize(
+            `${detail.description} By ${detail.business.name} in ${detail.business.city}, ${detail.business.county}.`,
+          ),
+          canonicalPath: `/creations/${id}`,
+        }
+      : null,
+  );
 
   if (creation.isPending) {
     return (

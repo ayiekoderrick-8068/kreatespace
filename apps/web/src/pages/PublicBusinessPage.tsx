@@ -6,12 +6,12 @@ import {
   supportsQuoteRequests,
 } from "@kreatespace/shared";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
 import { Link, useParams } from "react-router";
 import { Masonry, Photo } from "../components/gallery";
 import { LazyQuoteRequestForm } from "../components/LazyQuoteRequestForm";
 import { ApiError, apiRequest } from "../lib/api";
 import { trackEvent, useTrackView } from "../lib/events";
+import { usePageMeta, summarize } from "../lib/page-meta";
 import { queryKeys } from "../lib/queries";
 import type { PublicBusiness } from "../lib/types";
 
@@ -33,9 +33,17 @@ export function PublicBusinessPage() {
     business ? { type: "BUSINESS_VIEW", businessSlug: slug } : null,
   );
 
-  useEffect(() => {
-    if (business) document.title = `${business.businessName} — KreateSpace`;
-  }, [business]);
+  usePageMeta(
+    business
+      ? {
+          title: business.businessName,
+          description: summarize(
+            `${business.description} ${business.category.name} in ${business.city}, ${business.county}.`,
+          ),
+          canonicalPath: `/businesses/${slug}`,
+        }
+      : null,
+  );
 
   if (result.isPending) {
     return (

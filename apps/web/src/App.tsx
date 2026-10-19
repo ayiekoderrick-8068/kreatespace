@@ -1,9 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, lazy, useState, type ComponentType, type ReactElement } from "react";
-import { Navigate, RouterProvider, createBrowserRouter, type RouteObject } from "react-router";
+import {
+  Navigate,
+  Outlet,
+  RouterProvider,
+  createBrowserRouter,
+  useLocation,
+  type RouteObject,
+} from "react-router";
 import { AuthProvider } from "./auth/AuthProvider";
 import { Layout } from "./components/Layout";
 import { RequireRole } from "./components/RequireRole";
+import { staticMetaFor, usePageMeta } from "./lib/page-meta";
 import { AboutPage } from "./pages/AboutPage";
 import { CreationPage } from "./pages/CreationPage";
 import { ExplorePage } from "./pages/ExplorePage";
@@ -99,112 +107,123 @@ const SellerRegisterPage = lazyPage(
   () => import("./pages/seller/SellerRegisterPage"),
   "SellerRegisterPage",
 );
-export const routes: RouteObject[] = [
-  { path: "/login", element: standalone(<LoginPage />) },
-  { path: "/register", element: standalone(<RegisterPage />) },
-  { path: "/forgot-password", element: standalone(<ForgotPasswordPage />) },
-  { path: "/reset-password", element: standalone(<ResetPasswordPage />) },
-  {
-    element: <Layout />,
-    children: [
-      { path: "/", element: <HomePage /> },
-      { path: "/explore", element: <ExplorePage /> },
-      { path: "/creations/:id", element: <CreationPage /> },
-      { path: "/saved", element: <SavedPage /> },
-      { path: "/about", element: <AboutPage /> },
-      { path: "/for-businesses", element: <ForBusinessesPage /> },
-      { path: "/account", element: <AccountPage /> },
-      { path: "/invite/:token", element: <InvitePage /> },
-      { path: "/businesses/:slug", element: <PublicBusinessPage /> },
-      {
-        path: "/seller",
-        element: (
-          <RequireRole roles={["SELLER"]}>
-            <SellerDashboardPage />
-          </RequireRole>
-        ),
-      },
-      {
-        path: "/seller/packages",
-        element: (
-          <RequireRole roles={["SELLER"]}>
-            <PackagesPage />
-          </RequireRole>
-        ),
-      },
-      {
-        path: "/seller/website",
-        element: (
-          <RequireRole roles={["SELLER"]}>
-            <WebsiteRequestPage />
-          </RequireRole>
-        ),
-      },
-      {
-        path: "/seller/analytics",
-        element: (
-          <RequireRole roles={["SELLER"]}>
-            <AnalyticsPage />
-          </RequireRole>
-        ),
-      },
-      {
-        path: "/seller/creations/new",
-        element: (
-          <RequireRole roles={["SELLER"]}>
-            <CreationNewPage />
-          </RequireRole>
-        ),
-      },
-      {
-        path: "/seller/creations/:id",
-        element: (
-          <RequireRole roles={["SELLER"]}>
-            <CreationEditorPage />
-          </RequireRole>
-        ),
-      },
-      {
-        path: "/seller/edit",
-        element: (
-          <RequireRole roles={["SELLER"]}>
-            <SellerEditPage />
-          </RequireRole>
-        ),
-      },
-      {
-        path: "/seller/register",
-        element: (
-          <RequireRole roles={["SELLER"]}>
-            <SellerRegisterPage />
-          </RequireRole>
-        ),
-      },
-      {
-        path: "/admin",
-        element: (
-          <RequireRole roles={["ADMIN"]}>
-            <AdminLayout />
-          </RequireRole>
-        ),
-        children: [
-          { index: true, element: <Navigate to="/admin/businesses" replace /> },
-          { path: "businesses", element: <BusinessesPage /> },
-          { path: "businesses/:id", element: <BusinessReviewPage /> },
-          { path: "creations", element: <CreationsPage /> },
-          { path: "creations/:id", element: <CreationReviewPage /> },
-          { path: "packages", element: <PackagesAdminPage /> },
-          { path: "packages/:id", element: <PackageReviewPage /> },
-          { path: "invitations", element: <InvitationsPage /> },
-          { path: "analytics", element: <AnalyticsAdminPage /> },
-          { path: "website-requests", element: <WebsiteRequestsAdminPage /> },
-          { path: "imports", element: <ImportsAdminPage /> },
-        ],
-      },
-      { path: "*", element: <NotFoundPage /> },
-    ],
-  },
-];
+/** Titles and search-engine tags for every page that does not set its own. */
+function RouteMeta() {
+  const { pathname, search } = useLocation();
+  usePageMeta(staticMetaFor(pathname, search));
+  return <Outlet />;
+}
+
+export const routes: RouteObject[] = [{ element: <RouteMeta />, children: pages() }];
+
+function pages(): RouteObject[] {
+  return [
+    { path: "/login", element: standalone(<LoginPage />) },
+    { path: "/register", element: standalone(<RegisterPage />) },
+    { path: "/forgot-password", element: standalone(<ForgotPasswordPage />) },
+    { path: "/reset-password", element: standalone(<ResetPasswordPage />) },
+    {
+      element: <Layout />,
+      children: [
+        { path: "/", element: <HomePage /> },
+        { path: "/explore", element: <ExplorePage /> },
+        { path: "/creations/:id", element: <CreationPage /> },
+        { path: "/saved", element: <SavedPage /> },
+        { path: "/about", element: <AboutPage /> },
+        { path: "/for-businesses", element: <ForBusinessesPage /> },
+        { path: "/account", element: <AccountPage /> },
+        { path: "/invite/:token", element: <InvitePage /> },
+        { path: "/businesses/:slug", element: <PublicBusinessPage /> },
+        {
+          path: "/seller",
+          element: (
+            <RequireRole roles={["SELLER"]}>
+              <SellerDashboardPage />
+            </RequireRole>
+          ),
+        },
+        {
+          path: "/seller/packages",
+          element: (
+            <RequireRole roles={["SELLER"]}>
+              <PackagesPage />
+            </RequireRole>
+          ),
+        },
+        {
+          path: "/seller/website",
+          element: (
+            <RequireRole roles={["SELLER"]}>
+              <WebsiteRequestPage />
+            </RequireRole>
+          ),
+        },
+        {
+          path: "/seller/analytics",
+          element: (
+            <RequireRole roles={["SELLER"]}>
+              <AnalyticsPage />
+            </RequireRole>
+          ),
+        },
+        {
+          path: "/seller/creations/new",
+          element: (
+            <RequireRole roles={["SELLER"]}>
+              <CreationNewPage />
+            </RequireRole>
+          ),
+        },
+        {
+          path: "/seller/creations/:id",
+          element: (
+            <RequireRole roles={["SELLER"]}>
+              <CreationEditorPage />
+            </RequireRole>
+          ),
+        },
+        {
+          path: "/seller/edit",
+          element: (
+            <RequireRole roles={["SELLER"]}>
+              <SellerEditPage />
+            </RequireRole>
+          ),
+        },
+        {
+          path: "/seller/register",
+          element: (
+            <RequireRole roles={["SELLER"]}>
+              <SellerRegisterPage />
+            </RequireRole>
+          ),
+        },
+        {
+          path: "/admin",
+          element: (
+            <RequireRole roles={["ADMIN"]}>
+              <AdminLayout />
+            </RequireRole>
+          ),
+          children: [
+            { index: true, element: <Navigate to="/admin/businesses" replace /> },
+            { path: "businesses", element: <BusinessesPage /> },
+            { path: "businesses/:id", element: <BusinessReviewPage /> },
+            { path: "creations", element: <CreationsPage /> },
+            { path: "creations/:id", element: <CreationReviewPage /> },
+            { path: "packages", element: <PackagesAdminPage /> },
+            { path: "packages/:id", element: <PackageReviewPage /> },
+            { path: "invitations", element: <InvitationsPage /> },
+            { path: "analytics", element: <AnalyticsAdminPage /> },
+            { path: "website-requests", element: <WebsiteRequestsAdminPage /> },
+            { path: "imports", element: <ImportsAdminPage /> },
+          ],
+        },
+        { path: "*", element: <NotFoundPage /> },
+      ],
+    },
+  ];
+}
 
 export function createQueryClient() {
   return new QueryClient({
