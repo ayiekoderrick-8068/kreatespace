@@ -7,6 +7,7 @@ import { RequireRole } from "./components/RequireRole";
 import { AdminLayout } from "./pages/admin/AdminLayout";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
+import { CreationPage } from "./pages/CreationPage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { ForBusinessesPage } from "./pages/ForBusinessesPage";
 import { BusinessReviewPage } from "./pages/admin/BusinessReviewPage";
@@ -34,6 +35,7 @@ export const routes: RouteObject[] = [
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/explore", element: <ExplorePage /> },
+      { path: "/creations/:id", element: <CreationPage /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/for-businesses", element: <ForBusinessesPage /> },
       { path: "/account", element: <AccountPage /> },
