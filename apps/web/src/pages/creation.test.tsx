@@ -49,11 +49,12 @@ describe("creation detail page", () => {
       await screen.findByRole("heading", { name: "Floral Birthday Cake", level: 1 }),
     ).toBeInTheDocument();
     expect(screen.getByText("Three-tier vanilla sponge with sugar flowers.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Cakes" })).toHaveAttribute(
+    const details = screen.getByRole("region", { name: "Details" });
+    expect(within(details).getByRole("link", { name: "Cakes" })).toHaveAttribute(
       "href",
       "/explore?category=cakes",
     );
-    expect(screen.getByRole("link", { name: "Birthday" })).toHaveAttribute(
+    expect(within(details).getByRole("link", { name: "Birthday" })).toHaveAttribute(
       "href",
       "/explore?occasion=birthday",
     );
