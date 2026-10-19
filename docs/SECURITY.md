@@ -72,7 +72,9 @@ supplied by people. Controls, each covered by tests in `apps/api/src/imports/`:
   sets a few style attributes (such as image aspect ratios). Scripts are restricted to the site.
 - **No multi-factor sign-in is enforced** for administrators. Supabase supports it; decide before
   launch whether to require it.
-- **Rate limits are per instance** (kept in memory). Run a single API instance during the pilot.
+- **Rate limits are per instance by default** (kept in memory). Run a single API instance, or set
+  `RATE_LIMIT_STORE=postgres` so several instances share their counters (one small database write
+  per API request; if the database is unreachable, requests are let through rather than refused).
 - **Imports run inside the API process** and are not durable: a restart interrupts them (they are
   marked failed and can be restarted).
 - **No error-tracking service** and no web application firewall are installed; the host's basic

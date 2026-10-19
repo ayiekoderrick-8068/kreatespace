@@ -10,6 +10,11 @@ const envSchema = z.object({
    */
   TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
   /**
+   * Where rate-limit counters live. "memory" is right for one API instance. Set "postgres" before
+   * running several, so they count each visitor together (one small database write per request).
+   */
+  RATE_LIMIT_STORE: z.enum(["memory", "postgres"]).default("memory"),
+  /**
    * Administrators must complete two-step verification (an authenticator-app code). Leave on; it
    * may be switched off for local development only, and production refuses to start without it.
    */

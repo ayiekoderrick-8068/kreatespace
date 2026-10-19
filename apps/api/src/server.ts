@@ -2,6 +2,7 @@ import { createApp, type AppDeps } from "./app.js";
 import { createSupabaseTokenVerifier } from "./auth/token-verifier.js";
 import { createPrismaUserStore } from "./auth/user-store.js";
 import { loadEnv } from "./config/env.js";
+import { createPgRateLimitStore } from "./http/pg-rate-limit-store.js";
 import { failStaleJobs } from "./imports/service.js";
 import { getPrisma } from "./lib/prisma.js";
 import { createSupabaseMediaStorage } from "./storage/media-storage.js";
@@ -28,6 +29,10 @@ if (env.SUPABASE_URL && env.DATABASE_URL) {
     adminMfaRequired: env.ADMIN_MFA_REQUIRED,
   };
   deps.prisma = getPrisma(env.DATABASE_URL);
+  if (env.RATE_LIMIT_STORE === "postgres") {
+    const prisma = deps.prisma;
+    deps.rateLimitStore = (prefix) => createPgRateLimitStore(prisma, prefix);
+  }
   if (env.SUPABASE_SERVICE_ROLE_KEY) {
     const storage = createSupabaseMediaStorage({
       supabaseUrl: env.SUPABASE_URL,

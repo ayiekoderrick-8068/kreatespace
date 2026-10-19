@@ -85,9 +85,10 @@ transformations).
    photos that were uploaded but never used, and marks interrupted imports as failed. It is safe to
    run more often.
 
-**Run one API instance during the pilot.** Rate-limit counters live in memory, so several instances
-would each count separately. Moving to several instances needs a shared store (for example Redis)
-first.
+**Run one API instance during the pilot.** By default rate-limit counters live in memory, so several
+instances would each count separately. Before running more than one, set `RATE_LIMIT_STORE=postgres`
+so they share counters in the database (it adds one small write per API request, so watch database
+load; a dedicated store such as Redis would be the next step for heavy traffic).
 
 ## 4. The website on Vercel
 

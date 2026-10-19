@@ -545,6 +545,17 @@ model ImportItem {
   @@map("import_items")
 }
 
+/// Shared rate-limit counters, used when more than one API instance runs (RATE_LIMIT_STORE=postgres).
+/// One row per visitor and limiter; expired rows are removed by the maintenance job.
+model RateLimitHit {
+  key     String   @id
+  hits    Int
+  resetAt DateTime
+
+  @@index([resetAt])
+  @@map("rate_limit_hits")
+}
+
 enum DeletionStatus {
   /// Waiting out the delay (customers), or waiting for an administrator's check (business owners).
   REQUESTED

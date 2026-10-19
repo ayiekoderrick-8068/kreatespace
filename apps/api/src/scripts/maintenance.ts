@@ -2,6 +2,7 @@ import "dotenv/config";
 import { processAccountDeletions, purgeDeletionTombstones } from "../accounts/deletion.js";
 import { createSupabaseAuthAdmin } from "../auth/supabase-admin.js";
 import { loadEnv } from "../config/env.js";
+import { purgeExpiredRateLimits } from "../http/pg-rate-limit-store.js";
 import { failStaleJobs } from "../imports/service.js";
 import { purgeOldInquiryEvents } from "../inquiries/service.js";
 import { disconnectPrisma, getPrisma } from "../lib/prisma.js";
@@ -50,6 +51,9 @@ async function main() {
       "Storage and sign-in admin are not configured, so abandoned uploads and account deletions were not processed.",
     );
   }
+
+  const counters = await purgeExpiredRateLimits(prisma);
+  console.log(`Expired rate-limit counters removed: ${counters}`);
 
   const forgotten = await purgeDeletionTombstones(prisma);
   console.log(`Deleted-account markers forgotten after their short window: ${forgotten}`);

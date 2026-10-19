@@ -7,7 +7,8 @@ import type { Env } from "./config/env.js";
 import type { PrismaClient } from "./generated/prisma/client.js";
 import { HttpError } from "./http/errors.js";
 import { describeError } from "./http/log.js";
-import { createRateLimiter } from "./http/rate-limit.js";
+import { createRateLimiter, type RateLimitOptions } from "./http/rate-limit.js";
+import type { Store } from "express-rate-limit";
 import { accountRoutes, adminDeletionRoutes } from "./accounts/routes.js";
 import { adminAnalyticsRoutes, sellerAnalyticsRoutes } from "./analytics/routes.js";
 import { adminBusinessRoutes } from "./businesses/admin-routes.js";
@@ -42,6 +43,11 @@ export interface AppDeps {
   apiUrl?: string;
   /** Set to false in tests to switch off per-IP rate limiting. */
   rateLimiting?: boolean;
+  /**
+   * Makes the counter storage for one limiter (given a unique prefix). Leave out to count in
+   * memory, which is only correct while a single API instance runs.
+   */
+  rateLimitStore?: (prefix: string) => Store;
   /** Website importer settings; tests replace the fetcher to reach a local server. */
   importer?: Partial<ImporterDeps>;
 }
@@ -68,8 +74,17 @@ export function createApp(
     res.json({ status: "ok", service: `${PLATFORM_NAME} API` });
   });
 
+  // Each limiter gets its own counters, named by the order it is created in.
+  let limiterCount = 0;
+  const limiter = (options: RateLimitOptions) =>
+    createRateLimiter(
+      options,
+      deps.rateLimiting !== false,
+      deps.rateLimitStore?.(`limiter${limiterCount++}:`),
+    );
+
   // A broad per-IP ceiling for every other API route; sensitive routes add tighter limits.
-  app.use("/api", createRateLimiter({ windowMs: 60_000, max: 300 }, deps.rateLimiting !== false));
+  app.use("/api", limiter({ windowMs: 60_000, max: 300 }));
 
   const authenticate: RequestHandler = deps.auth
     ? requireAuth(deps.auth)
@@ -98,16 +113,13 @@ export function createApp(
       prisma: deps.prisma,
       authenticate,
       webUrl: deps.webUrl ?? "http://localhost:5173",
-      limiter: createRateLimiter({ windowMs: 15 * 60_000, max: 30 }, deps.rateLimiting !== false),
+      limiter: limiter({ windowMs: 15 * 60_000, max: 30 }),
     };
     const businessDeps = {
       prisma: deps.prisma,
       authenticate,
       storage: deps.storage,
-      writeLimiter: createRateLimiter(
-        { windowMs: 15 * 60_000, max: 100 },
-        deps.rateLimiting !== false,
-      ),
+      writeLimiter: limiter({ windowMs: 15 * 60_000, max: 100 }),
     };
     app.use("/api/admin/invitations", adminInvitationRoutes(routeDeps));
     app.use("/api/admin/businesses", adminBusinessRoutes(businessDeps));
@@ -118,10 +130,7 @@ export function createApp(
       "/api/public/events",
       inquiryEventRoutes({
         prisma: deps.prisma,
-        limiter: createRateLimiter(
-          { windowMs: 10 * 60_000, max: 200 },
-          deps.rateLimiting !== false,
-        ),
+        limiter: limiter({ windowMs: 10 * 60_000, max: 200 }),
       }),
     );
     app.use(
