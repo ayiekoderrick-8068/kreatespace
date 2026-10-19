@@ -33,6 +33,26 @@ describe.skipIf(!hasDatabase)("database exposure", () => {
     }
   });
 
+  it("lets nobody but the owner run the database's own functions, so the Data API cannot call them", async () => {
+    // A function nobody revoked is executable by PUBLIC, which includes Supabase's anon role.
+    // Trigger functions are skipped: the Data API does not offer them as callable functions.
+    const open = await testPrisma().$queryRaw<{ name: string }[]>`
+      SELECT p.proname AS name
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public'
+        AND p.prorettype <> 'pg_catalog.trigger'::regtype
+        AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.deptype = 'e')
+        AND (p.proacl IS NULL
+             OR EXISTS (SELECT 1 FROM aclexplode(p.proacl) a
+                        WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE'))
+      ORDER BY p.proname`;
+    expect(
+      open.map((row) => row.name),
+      "These functions can be called by anyone through the Supabase Data API. REVOKE ALL ON FUNCTION … FROM PUBLIC in the migration that creates them.",
+    ).toEqual([]);
+  });
+
   it("keeps the application's own access working", async () => {
     // The API connects as the table owner, which row-level security does not restrict.
     const prisma = testPrisma();

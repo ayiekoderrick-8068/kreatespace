@@ -250,6 +250,9 @@ model Creation {
   status              CreationStatus @default(DRAFT)
   publishedRevisionId String?        @unique @db.Uuid
   publishedAt         DateTime?
+  /// What search matches against. Kept up to date by database triggers (see the search_document
+  /// migration); never written by the application.
+  searchDocument      Unsupported("tsvector")?
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 

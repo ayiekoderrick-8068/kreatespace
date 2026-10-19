@@ -95,9 +95,12 @@ async function cardsInOrder(
   return toCards(storage, ordered);
 }
 
-/** What a customer's text is matched against: the creation, its business, category and occasion. */
-const searchDocumentSql = Prisma.sql`to_tsvector('english',
-  cr."title" || ' ' || cr."description" || ' ' || br."businessName" || ' ' || cat."name" || ' ' || coalesce(o."name", ''))`;
+/**
+ * What a customer's text is matched against: the creation, its business, category and occasion.
+ * It is stored on the creation and kept current by database triggers, so a search reads it instead
+ * of rebuilding the text of every public creation.
+ */
+const searchDocumentSql = Prisma.sql`c."searchDocument"`;
 
 /** Escapes LIKE wildcards so what people type is matched literally. */
 function likePattern(text: string): string {

@@ -110,13 +110,36 @@ Median times; the 95th percentile is typically within about 2× of these. Events
 
 - **At pilot size (about 300 creations) everything answers in under 50 ms.**
 - Browsing, filters, pages and analytics stay fast at 20,000 creations.
-- **Search is the one that does not scale.** It builds the text-search document for every public
-  creation on every query, so its time grows in step with the catalogue. It is comfortable up to a
-  couple of thousand creations (roughly 100 ms), noticeable at 5,000, and slow at 20,000.
-  **Plan to fix search before the catalogue passes about 2,000 creations:** keep a stored,
-  indexed search document per creation (updated when a creation or its business is published) so a
-  search no longer reads every row. This was measured, not implemented, because the pilot
-  (15 businesses, at most 300 creations) is far below the threshold.
+- **Search did not scale** (table above, measured 19 October): it built the text-search document
+  for every public creation on every query, so its time grew in step with the catalogue. This was
+  fixed on 20 October; see below.
+
+### Search fix (20 October 2026)
+
+Each creation now stores its search document (title, description, business name, category and
+occasion) in a `searchDocument` column. Database triggers (migration `search_document`) recompute it
+whenever a creation is published or moved, a business is approved or renamed, a revision is edited,
+or a category or occasion is renamed, so no application code has to remember to. Search reads the
+stored document instead of rebuilding it. Partial words ("wed") still match titles and business
+names with a pattern match as before. Results and their order are unchanged: a test compares every
+stored document with the old computed one.
+
+Same benchmark, same 20,000 creations and 100,000 events on this machine, median of 25 runs:
+
+| Query                              | Before (ms) | After (ms) | Faster |
+| ---------------------------------- | ----------: | ---------: | -----: |
+| **Search: a word ("cake")**        |       1,475 |         70 |    21× |
+| **Search: partial typing ("wed")** |       1,286 |         72 |    18× |
+| **Search: nothing matches**        |         765 |         73 |    10× |
+
+The feed, filters, pages and analytics were unchanged within run-to-run noise (the sitemap and
+related creations varied by tens of milliseconds between the two runs; nothing about them changed).
+The 300 and 5,000-creation columns above were not re-run. A full-text index was deliberately
+not added: the query also matches partial words with a pattern match, which prevents the database
+using one, and at 70 ms for 20,000 creations it is not needed. Revisit if the catalogue passes
+about 100,000 creations. Two limits remain: results still rank by word frequency only (a title match
+does not outrank a description match), and the database function that builds the document has its
+public access revoked, with a test that fails if a future function is left open.
 
 ## Caching
 
