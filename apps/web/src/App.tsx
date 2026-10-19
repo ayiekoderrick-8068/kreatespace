@@ -43,6 +43,14 @@ const PackageReviewPage = lazyPage(
   "PackageReviewPage",
 );
 const PackagesPage = lazyPage(() => import("./pages/seller/PackagesPage"), "PackagesPage");
+const WebsiteRequestPage = lazyPage(
+  () => import("./pages/seller/WebsiteRequestPage"),
+  "WebsiteRequestPage",
+);
+const WebsiteRequestsAdminPage = lazyPage(
+  () => import("./pages/admin/WebsiteRequestsAdminPage"),
+  "WebsiteRequestsAdminPage",
+);
 const AnalyticsPage = lazyPage(() => import("./pages/seller/AnalyticsPage"), "AnalyticsPage");
 const AnalyticsAdminPage = lazyPage(
   () => import("./pages/admin/AnalyticsAdminPage"),
@@ -97,6 +105,14 @@ export const routes: RouteObject[] = [
         element: (
           <RequireRole roles={["SELLER"]}>
             <PackagesPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: "/seller/website",
+        element: (
+          <RequireRole roles={["SELLER"]}>
+            <WebsiteRequestPage />
           </RequireRole>
         ),
       },
@@ -157,6 +173,7 @@ export const routes: RouteObject[] = [
           { path: "packages/:id", element: <PackageReviewPage /> },
           { path: "invitations", element: <InvitationsPage /> },
           { path: "analytics", element: <AnalyticsAdminPage /> },
+          { path: "website-requests", element: <WebsiteRequestsAdminPage /> },
         ],
       },
       { path: "*", element: <NotFoundPage /> },

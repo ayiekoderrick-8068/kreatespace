@@ -151,6 +151,12 @@ function ApprovedView({ data }: { data: OwnBusiness }) {
             </Link>
             <span className="text-ink-muted"> — how customers find and contact you</span>
           </li>
+          <li>
+            <Link to="/seller/website" className="font-medium text-terracotta underline">
+              Get help with a website
+            </Link>
+            <span className="text-ink-muted"> — ask our team to build or improve one</span>
+          </li>
         </ul>
       </Card>
     </>

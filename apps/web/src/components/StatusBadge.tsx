@@ -5,7 +5,21 @@ import type {
   RevisionStatus,
 } from "@kreatespace/shared";
 
-type AnyStatus = BusinessStatus | RevisionStatus | InvitationStatus | CreationStatus | "ACTIVE";
+type WorkflowStatus =
+  | "NEW"
+  | "IN_REVIEW"
+  | "QUOTED"
+  | "DECLINED"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "PENDING_REVIEW"
+  | "DUPLICATE"
+  | "QUEUED"
+  | "RUNNING"
+  | "FAILED";
+
+type AnyStatus =
+  BusinessStatus | RevisionStatus | InvitationStatus | CreationStatus | WorkflowStatus | "ACTIVE";
 
 const LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -19,6 +33,17 @@ const LABELS: Record<string, string> = {
   EXPIRED: "Expired",
   ARCHIVED: "Archived",
   ACTIVE: "Active",
+  NEW: "New",
+  IN_REVIEW: "In review",
+  QUOTED: "Quote sent",
+  DECLINED: "Declined",
+  COMPLETED: "Completed",
+  CANCELLED: "Withdrawn",
+  PENDING_REVIEW: "Needs review",
+  DUPLICATE: "Possible duplicate",
+  QUEUED: "Queued",
+  RUNNING: "Running",
+  FAILED: "Failed",
 };
 
 const STYLES: Record<string, string> = {
@@ -33,6 +58,17 @@ const STYLES: Record<string, string> = {
   EXPIRED: "bg-cream-dark text-ink-muted",
   ARCHIVED: "bg-cream-dark text-ink-muted",
   ACTIVE: "bg-green-100 text-green-900",
+  NEW: "bg-amber-100 text-amber-900",
+  IN_REVIEW: "bg-sky-100 text-sky-900",
+  QUOTED: "bg-sky-100 text-sky-900",
+  DECLINED: "bg-red-100 text-red-900",
+  COMPLETED: "bg-green-100 text-green-900",
+  CANCELLED: "bg-cream-dark text-ink-muted",
+  PENDING_REVIEW: "bg-amber-100 text-amber-900",
+  DUPLICATE: "bg-orange-100 text-orange-900",
+  QUEUED: "bg-cream-dark text-ink",
+  RUNNING: "bg-sky-100 text-sky-900",
+  FAILED: "bg-red-100 text-red-900",
 };
 
 export function statusLabel(status: AnyStatus): string {
