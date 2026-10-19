@@ -1,5 +1,6 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { card } from "../test/fixtures";
 import { mockApi } from "../test/mockApi";
 import { createFakeAuth, renderApp } from "../test/renderWithProviders";
 
@@ -8,6 +9,12 @@ const business = {
   businessName: "Cakes by Maria",
   description: "Custom celebration cakes baked fresh to order in Nairobi.",
   category: { slug: "cakes", name: "Cakes" },
+  categories: [
+    { slug: "cakes", name: "Cakes" },
+    { slug: "creative-gifts", name: "Creative Gifts" },
+  ],
+  creations: [] as ReturnType<typeof card>[],
+  hasMoreCreations: false,
   county: "Nairobi",
   city: "Westlands",
   websiteUrl: "https://cakes-by-maria.vercel.app",
@@ -28,7 +35,7 @@ describe("public business profile", () => {
     expect(
       await screen.findByRole("heading", { name: "Cakes by Maria", level: 1 }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Cakes · Westlands, Nairobi")).toBeInTheDocument();
+    expect(screen.getByText("Westlands, Nairobi")).toBeInTheDocument();
     expect(screen.getByText(business.description)).toBeInTheDocument();
     expect(screen.getByAltText("Cakes by Maria logo")).toHaveAttribute("src", business.logoUrl);
     expect(screen.getAllByRole("img", { name: /portfolio photo/ })).toHaveLength(2);
@@ -89,5 +96,43 @@ describe("public business profile", () => {
     expect(
       await screen.findByRole("heading", { name: "Something went wrong" }),
     ).toBeInTheDocument();
+  });
+
+  it("lists the business's categories as links into discovery", async () => {
+    render({ business });
+    const list = await screen.findByRole("list", { name: "Categories" });
+    expect(within(list).getByRole("link", { name: "Cakes" })).toHaveAttribute(
+      "href",
+      "/explore?category=cakes",
+    );
+    expect(within(list).getByRole("link", { name: "Creative Gifts" })).toHaveAttribute(
+      "href",
+      "/explore?category=creative-gifts",
+    );
+  });
+
+  it("shows the business's creations, each linking to its page and back to this business", async () => {
+    render({
+      business: { ...business, creations: [card(1), card(2)], hasMoreCreations: false },
+    });
+    const section = (await screen.findByRole("heading", { name: "Their work" })).closest(
+      "section",
+    )!;
+    expect(within(section).getByRole("link", { name: "Creation 1" })).toHaveAttribute(
+      "href",
+      "/creations/00000000-0000-4000-8000-000000000001",
+    );
+    expect(within(section).getAllByRole("link", { name: "Cakes by Maria" })).toHaveLength(2);
+  });
+
+  it("says when only the newest creations are shown", async () => {
+    render({ business: { ...business, creations: [card(1)], hasMoreCreations: true } });
+    expect(await screen.findByText(/Showing their 1 newest creations/)).toBeInTheDocument();
+  });
+
+  it("leaves out the creations section for a business with none yet", async () => {
+    render({ business });
+    await screen.findByRole("heading", { name: "Cakes by Maria", level: 1 });
+    expect(screen.queryByRole("heading", { name: "Their work" })).not.toBeInTheDocument();
   });
 });

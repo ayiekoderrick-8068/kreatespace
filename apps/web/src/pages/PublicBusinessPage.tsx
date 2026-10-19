@@ -2,6 +2,7 @@ import { buildWhatsAppLink, isSafeWebUrl, profileInquiryMessage } from "@kreates
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Link, useParams } from "react-router";
+import { Masonry } from "../components/gallery";
 import { ApiError, apiRequest } from "../lib/api";
 import { queryKeys } from "../lib/queries";
 import type { PublicBusiness } from "../lib/types";
@@ -71,8 +72,20 @@ export function PublicBusinessPage() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">{business.businessName}</h1>
           <p className="mt-1 text-ink-muted">
-            {business.category.name} · {business.city}, {business.county}
+            {business.city}, {business.county}
           </p>
+          <ul aria-label="Categories" className="mt-2 flex flex-wrap gap-2 text-sm">
+            {business.categories.map((category) => (
+              <li key={category.slug}>
+                <Link
+                  to={`/explore?category=${category.slug}`}
+                  className="rounded-full border border-sand bg-white px-3 py-1 hover:bg-cream-dark"
+                >
+                  {category.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </header>
 
@@ -107,6 +120,22 @@ export function PublicBusinessPage() {
           {business.description}
         </p>
       </section>
+
+      {business.creations.length > 0 ? (
+        <section aria-labelledby="creations" className="mt-10">
+          <h2 id="creations" className="text-lg font-semibold">
+            Their work
+          </h2>
+          <div className="mt-3">
+            <Masonry items={business.creations} />
+          </div>
+          {business.hasMoreCreations ? (
+            <p className="mt-4 text-sm text-ink-muted">
+              Showing their {business.creations.length} newest creations.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       {business.images.length > 0 ? (
         <section aria-labelledby="portfolio" className="mt-8">
