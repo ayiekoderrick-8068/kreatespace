@@ -91,18 +91,33 @@ describe("registration", () => {
     });
   });
 
-  it("shows sign-up errors", async () => {
+  it("treats an address that already has an account exactly like a new sign-up", async () => {
+    // Otherwise the form could be used to find out who is registered.
     fake.mocks.signUp.mockResolvedValue({
       data: { session: null },
-      error: { message: "User already registered" },
+      error: { message: "User already registered", code: "user_already_exists" },
     });
     const user = userEvent.setup();
     renderApp("/register", fake.client);
     await fillForm(user);
-    expect(await screen.findByRole("alert")).toHaveTextContent("User already registered");
+    expect(await screen.findByRole("heading", { name: "Check your email" })).toBeInTheDocument();
+    expect(screen.queryByText(/already registered/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps technical sign-up errors off the page", async () => {
+    fake.mocks.signUp.mockResolvedValue({
+      data: { session: null },
+      error: { message: "FetchError: connect ECONNREFUSED 10.0.0.5:5432" },
+    });
+    const user = userEvent.setup();
+    renderApp("/register", fake.client);
+    await fillForm(user);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Something went wrong. Please try again.",
+    );
+    expect(screen.queryByText(/ECONNREFUSED/)).not.toBeInTheDocument();
   });
 });
-
 describe("password recovery", () => {
   it("sends a reset email and shows a non-revealing confirmation", async () => {
     const user = userEvent.setup();

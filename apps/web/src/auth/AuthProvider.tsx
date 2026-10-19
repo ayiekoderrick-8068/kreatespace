@@ -1,6 +1,7 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { getSupabase } from "../lib/supabase";
+import { authErrorMessage, isAlreadyRegistered } from "./errors";
 
 /** The subset of the Supabase auth client the app relies on (easy to fake in tests). */
 export type AuthClient = Pick<
@@ -94,7 +95,7 @@ export function AuthProvider({
       async signIn(email, password) {
         if (!auth) return { error: NOT_CONFIGURED };
         const { error } = await auth.signInWithPassword({ email, password });
-        return { error: error?.message ?? null };
+        return { error: authErrorMessage(error) };
       },
       async signUp({ email, password, fullName }) {
         if (!auth) return { error: NOT_CONFIGURED, needsEmailVerification: false };
@@ -103,8 +104,11 @@ export function AuthProvider({
           password,
           options: { data: { full_name: fullName }, emailRedirectTo: `${origin}/login` },
         });
+        // An address that already has an account looks exactly like a new sign-up, so the form
+        // can't be used to discover who is registered.
+        if (isAlreadyRegistered(error)) return { error: null, needsEmailVerification: true };
         return {
-          error: error?.message ?? null,
+          error: authErrorMessage(error),
           needsEmailVerification: !error && !data.session,
         };
       },
@@ -116,13 +120,13 @@ export function AuthProvider({
         const { error } = await auth.resetPasswordForEmail(email, {
           redirectTo: `${origin}/reset-password`,
         });
-        return { error: error?.message ?? null };
+        return { error: authErrorMessage(error) };
       },
       async updatePassword(password) {
         if (!auth) return { error: NOT_CONFIGURED };
         const { error } = await auth.updateUser({ password });
         if (!error) setRecovering(false);
-        return { error: error?.message ?? null };
+        return { error: authErrorMessage(error) };
       },
       async signInWithGoogle() {
         if (!auth) return { error: NOT_CONFIGURED };
@@ -130,7 +134,7 @@ export function AuthProvider({
           provider: "google",
           options: { redirectTo: origin },
         });
-        return { error: error?.message ?? null };
+        return { error: authErrorMessage(error) };
       },
     };
   }, [auth, loading, session, recovering]);

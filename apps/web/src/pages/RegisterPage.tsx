@@ -41,8 +41,9 @@ export function RegisterPage() {
     return (
       <AuthLayout title="Check your email">
         <FormMessage kind="success">
-          We sent a verification link to <strong>{verifyEmail}</strong>. Open it to activate your
-          account, then log in.
+          We’ve sent a verification link to <strong>{verifyEmail}</strong>. Open it to activate your
+          account, then log in. Can’t find it? Check your spam folder. If you already have an
+          account with this email, just log in or reset your password.
         </FormMessage>
         <Link
           to="/login"
