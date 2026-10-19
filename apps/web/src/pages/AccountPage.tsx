@@ -1,5 +1,6 @@
 import { Link, Navigate } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
+import { DeletionSection } from "../components/DeletionSection";
 import { SecondaryButton } from "../components/forms";
 import { useCurrentUser } from "../lib/queries";
 
@@ -72,6 +73,8 @@ export function AccountPage() {
       <SecondaryButton type="button" className="mt-8" onClick={() => void signOut()}>
         Log out
       </SecondaryButton>
+
+      <DeletionSection />
     </main>
   );
 }
