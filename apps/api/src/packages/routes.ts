@@ -87,15 +87,13 @@ export function sellerPackageRoutes({ prisma, authenticate, storage, writeLimite
   router.post("/:id/image-upload", writeLimiter, async (req, res) => {
     const packageId = parseInput(idSchema, req.params.id);
     const upload = parseInput(uploadRequestSchema, req.body);
-    res
-      .status(201)
-      .json(
-        await createPackageImageUpload(prisma, needStorage(), {
-          userId: req.user!.id,
-          packageId,
-          upload,
-        }),
-      );
+    res.status(201).json(
+      await createPackageImageUpload(prisma, needStorage(), {
+        userId: req.user!.id,
+        packageId,
+        upload,
+      }),
+    );
   });
 
   router.post("/:id/image", writeLimiter, async (req, res) => {

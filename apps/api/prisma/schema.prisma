@@ -139,6 +139,7 @@ model Business {
   decisions         ReviewDecision[]
   creations         Creation[]
   packages          ServicePackage[]
+  inquiryEvents     InquiryEvent[]
 
   @@index([status])
   @@map("businesses")
@@ -368,4 +369,31 @@ model PackageReviewDecision {
 
   @@index([packageId, createdAt])
   @@map("package_review_decisions")
+}
+
+enum InquiryEventType {
+  CREATION_VIEW
+  BUSINESS_VIEW
+  WHATSAPP_CLICK
+  WEBSITE_CLICK
+}
+
+/// A privacy-conscious analytics event: what was viewed or clicked, never who did it. There is no
+/// IP address, user agent, account, message text or phone number. A WhatsApp click means the link
+/// was opened, not that a message was sent.
+model InquiryEvent {
+  id         String           @id @default(uuid()) @db.Uuid
+  type       InquiryEventType
+  businessId String           @db.Uuid
+  creationId String?          @db.Uuid
+  packageId  String?          @db.Uuid
+  source     String?
+  createdAt  DateTime         @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([creationId, type])
+  @@index([type, createdAt])
+  @@map("inquiry_events")
 }
