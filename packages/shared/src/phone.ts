@@ -37,3 +37,38 @@ export const kenyanPhoneSchema = z.string().transform((value, ctx) => {
 export function toWhatsAppNumber(e164: string): string {
   return e164.replace(/^\+/, "");
 }
+
+/**
+ * Normalises a WhatsApp number to E.164. Kenyan numbers may be written locally (`0712 345 678`)
+ * or with a country code; any other country must be written internationally, either with a
+ * leading `+` or `00` (`+44 7700 900123`). Returns `null` when the number is not valid.
+ */
+export function normalizePhoneNumber(input: string): string | null {
+  const cleaned = input.trim().replace(/[\s\-().]/g, "");
+  if (!/^\+?\d+$/.test(cleaned)) return null;
+
+  const international = cleaned.startsWith("00")
+    ? `+${cleaned.slice(2)}`
+    : cleaned.startsWith("+")
+      ? cleaned
+      : null;
+
+  // Anything that could be a Kenyan number is held to Kenya's rules.
+  if (!international || international.startsWith("+254")) return normalizeKenyanPhone(cleaned);
+
+  // E.164: a country code (never starting with 0) and up to 15 digits in total.
+  return /^\+[1-9]\d{7,14}$/.test(international) ? international : null;
+}
+
+/** Validates a WhatsApp number (Kenyan or international) and transforms it to E.164. */
+export const whatsappNumberSchema = z.string().transform((value, ctx) => {
+  const normalized = normalizePhoneNumber(value);
+  if (!normalized) {
+    ctx.addIssue({
+      code: "custom",
+      message: "Enter a valid WhatsApp number, for example 0712 345 678 or +44 7700 900123",
+    });
+    return z.NEVER;
+  }
+  return normalized;
+});

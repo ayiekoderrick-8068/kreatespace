@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { KENYAN_COUNTIES } from "./kenya.js";
-import { kenyanPhoneSchema } from "./phone.js";
+import { whatsappNumberSchema } from "./phone.js";
 
 export const BUSINESS_STATUSES = [
   "DRAFT",
@@ -91,7 +91,7 @@ export const businessDetailsSchema = z.object({
     .max(80, "City or town must be 80 characters or fewer"),
   /** Optional: businesses without a website can still join. Empty string means none. */
   websiteUrl: optionalWebsiteSchema.optional(),
-  whatsappNumber: kenyanPhoneSchema,
+  whatsappNumber: whatsappNumberSchema,
 });
 
 /** Storage paths look like `businesses/<businessId>/<imageId>.<ext>`. */
