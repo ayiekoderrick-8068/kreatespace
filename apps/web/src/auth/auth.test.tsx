@@ -136,14 +136,13 @@ describe("password recovery", () => {
 });
 
 describe("session state", () => {
-  it("shows the signed-in user in the header and logs out", async () => {
+  it("offers log out to signed-in people and signs them out", async () => {
     fake = createFakeAuth(fakeSession("maria@example.com"));
     mockApi({ "GET /api/me": user("CUSTOMER") });
     const u = userEvent.setup();
     renderApp("/", fake.client);
 
-    expect(await screen.findByText("maria@example.com")).toBeInTheDocument();
-    await u.click(screen.getByRole("button", { name: "Log out" }));
+    await u.click(await screen.findByRole("button", { name: "Log out" }));
     expect(fake.mocks.signOut).toHaveBeenCalled();
   });
 });

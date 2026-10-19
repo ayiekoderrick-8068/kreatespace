@@ -5,6 +5,9 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { Layout } from "./components/Layout";
 import { RequireRole } from "./components/RequireRole";
 import { AdminLayout } from "./pages/admin/AdminLayout";
+import { AboutPage } from "./pages/AboutPage";
+import { AccountPage } from "./pages/AccountPage";
+import { ForBusinessesPage } from "./pages/ForBusinessesPage";
 import { BusinessReviewPage } from "./pages/admin/BusinessReviewPage";
 import { BusinessesPage } from "./pages/admin/BusinessesPage";
 import { InvitationsPage } from "./pages/admin/InvitationsPage";
@@ -29,6 +32,9 @@ export const routes: RouteObject[] = [
     element: <Layout />,
     children: [
       { path: "/", element: <HomePage /> },
+      { path: "/about", element: <AboutPage /> },
+      { path: "/for-businesses", element: <ForBusinessesPage /> },
+      { path: "/account", element: <AccountPage /> },
       { path: "/invite/:token", element: <InvitePage /> },
       { path: "/businesses/:slug", element: <PublicBusinessPage /> },
       {

@@ -3,15 +3,59 @@
 @theme {
   --color-cream: #faf5ec;
   --color-cream-dark: #f1e8d8;
+  --color-sand: #e6dac4;
   --color-ink: #2b2420;
   --color-ink-muted: #6b5f56;
   --color-terracotta: #b5543a;
   --color-terracotta-dark: #96422c;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: ui-serif, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background-color: var(--color-cream);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-terracotta);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Soft loading placeholder; respects reduced motion via the rule above. */
+@keyframes kreate-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.skeleton {
+  animation: kreate-pulse 1.6s ease-in-out infinite;
+  background-color: var(--color-cream-dark);
 }
