@@ -9,6 +9,14 @@ export interface MediaStorage {
   createReadUrls(paths: string[]): Promise<Map<string, string>>;
   /** Names of objects stored under a folder prefix (without the prefix). */
   listFolder(prefix: string): Promise<string[]>;
+  /**
+   * Optional: resized renditions for responsive images. Storage that cannot transform images
+   * leaves this out and callers fall back to the original.
+   */
+  createVariantUrls?(
+    paths: string[],
+    widths: number[],
+  ): Promise<Map<string, { width: number; url: string }[]>>;
 }
 
 export const READ_URL_TTL_SECONDS = 60 * 60;
@@ -17,6 +25,8 @@ export interface SupabaseStorageConfig {
   supabaseUrl: string;
   serviceRoleKey: string;
   bucket: string;
+  /** Needs a Supabase plan with image transformations; off by default. */
+  imageTransforms?: boolean;
 }
 
 /**
@@ -59,6 +69,27 @@ export function createSupabaseMediaStorage(config: SupabaseStorageConfig): Media
       }
       return urls;
     },
+
+    ...(config.imageTransforms
+      ? {
+          async createVariantUrls(paths: string[], widths: number[]) {
+            const variants = new Map<string, { width: number; url: string }[]>();
+            await Promise.all(
+              paths.map(async (path) => {
+                const entries: { width: number; url: string }[] = [];
+                for (const width of widths) {
+                  const { data } = await bucket().createSignedUrl(path, READ_URL_TTL_SECONDS, {
+                    transform: { width, quality: 75 },
+                  });
+                  if (data?.signedUrl) entries.push({ width, url: data.signedUrl });
+                }
+                variants.set(path, entries);
+              }),
+            );
+            return variants;
+          },
+        }
+      : {}),
 
     async listFolder(prefix) {
       const { data, error } = await bucket().list(prefix.replace(/\/+$/, ""), { limit: 1000 });

@@ -37,6 +37,7 @@ model User {
   auditLogs           AuditLog[]
   business            Business?
   reviewDecisions     ReviewDecision[] @relation("ReviewDecisionAdmin")
+  savedCreations      SavedCreation[]
 
   @@map("users")
 }
@@ -114,7 +115,8 @@ model Category {
   sortOrder Int     @default(0)
   active    Boolean @default(true)
 
-  revisions BusinessRevision[]
+  revisions         BusinessRevision[]
+  creationRevisions CreationRevision[]
 
   @@map("categories")
 }
@@ -133,6 +135,7 @@ model Business {
   revisions         BusinessRevision[] @relation("BusinessRevisions")
   publishedRevision BusinessRevision?  @relation("PublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
   decisions         ReviewDecision[]
+  creations         Creation[]
 
   @@index([status])
   @@map("businesses")
@@ -199,4 +202,100 @@ model ReviewDecision {
 
   @@index([businessId, createdAt])
   @@map("review_decisions")
+}
+
+enum CreationStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+/// Occasions customers shop for (birthday, wedding, graduation, ...).
+model Occasion {
+  id        String  @id @default(uuid()) @db.Uuid
+  slug      String  @unique
+  name      String
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  creationRevisions CreationRevision[]
+
+  @@map("occasions")
+}
+
+/// A piece of work (a cake, an outfit, a photo shoot) that belongs to one business.
+/// Visitors only ever see `publishedRevision`, and only while the business is approved.
+model Creation {
+  id                  String         @id @default(uuid()) @db.Uuid
+  businessId          String         @db.Uuid
+  status              CreationStatus @default(DRAFT)
+  publishedRevisionId String?        @unique @db.Uuid
+  publishedAt         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  revisions         CreationRevision[] @relation("CreationRevisions")
+  publishedRevision CreationRevision?  @relation("PublishedCreationRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
+  saves             SavedCreation[]
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([businessId])
+  @@map("creations")
+}
+
+model CreationRevision {
+  id          String         @id @default(uuid()) @db.Uuid
+  creationId  String         @db.Uuid
+  version     Int
+  status      RevisionStatus @default(DRAFT)
+  title       String
+  description String
+  categoryId  String         @db.Uuid
+  occasionId  String?        @db.Uuid
+  submittedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  creation     Creation        @relation("CreationRevisions", fields: [creationId], references: [id], onDelete: Cascade)
+  publishedFor Creation?       @relation("PublishedCreationRevision")
+  category     Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  occasion     Occasion?       @relation(fields: [occasionId], references: [id], onDelete: SetNull)
+  images       CreationImage[]
+
+  @@unique([creationId, version])
+  @@index([categoryId])
+  @@index([occasionId])
+  @@map("creation_revisions")
+}
+
+/// Image dimensions are stored so pages can reserve space and avoid layout shift.
+model CreationImage {
+  id         String   @id @default(uuid()) @db.Uuid
+  revisionId String   @db.Uuid
+  path       String
+  position   Int
+  width      Int
+  height     Int
+  createdAt  DateTime @default(now())
+
+  revision CreationRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+
+  @@unique([revisionId, position])
+  @@map("creation_images")
+}
+
+model SavedCreation {
+  userId     String   @db.Uuid
+  creationId String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creation Creation @relation(fields: [creationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, creationId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("saved_creations")
 }

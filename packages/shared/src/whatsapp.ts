@@ -10,6 +10,16 @@ export function buildWhatsAppLink(phone: string, message: string): string | null
   return `https://wa.me/${toWhatsAppNumber(e164)}?text=${encodeURIComponent(message)}`;
 }
 
+/** Message for enquiring about one creation; includes a link so the seller sees which one. */
+export function creationInquiryMessage(
+  businessName: string,
+  title: string,
+  creationUrl?: string,
+): string {
+  const message = `Hello ${businessName}! I found your ${title} on KreateSpace. I'm interested in ordering it. Could you share pricing and availability?`;
+  return creationUrl ? `${message}\n${creationUrl}` : message;
+}
+
 /** Default message for contacting a business from its profile page. */
 export function profileInquiryMessage(businessName: string): string {
   return `Hello ${businessName}! I found your business on KreateSpace and I'd like to know more about your work. Could you share pricing and availability?`;

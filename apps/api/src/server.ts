@@ -22,6 +22,7 @@ if (env.SUPABASE_URL && env.DATABASE_URL) {
       supabaseUrl: env.SUPABASE_URL,
       serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
       bucket: env.SUPABASE_STORAGE_BUCKET,
+      imageTransforms: env.SUPABASE_IMAGE_TRANSFORMS,
     });
     await storage.ensureBucket();
     deps.storage = storage;

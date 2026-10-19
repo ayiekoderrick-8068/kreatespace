@@ -57,7 +57,7 @@ describe.skipIf(!hasDatabase)("business registration", () => {
       expect(res.status).toBe(200);
       const slugs = res.body.categories.map((c: { slug: string }) => c.slug);
       expect(slugs).toEqual(
-        expect.arrayContaining(["cakes", "fashion", "photography", "beauty-makeup", "other"]),
+        expect.arrayContaining(["cakes", "fashion", "photography", "beauty", "other"]),
       );
     });
   });

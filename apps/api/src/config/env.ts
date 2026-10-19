@@ -15,6 +15,11 @@ const envSchema = z.object({
   /** Server-only key used for Storage. Never expose it to the browser. */
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
   SUPABASE_STORAGE_BUCKET: z.string().min(1).default("business-media"),
+  /** Serve resized image renditions (requires Supabase image transformations). */
+  SUPABASE_IMAGE_TRANSFORMS: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
   /** Only for projects still using the legacy shared JWT secret; omit for asymmetric signing keys. */
   SUPABASE_JWT_SECRET: z.string().min(1).optional(),
   CORS_ORIGIN: z
