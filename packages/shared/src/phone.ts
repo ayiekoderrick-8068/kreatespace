@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 /** Matches a Kenyan mobile number in E.164 form: +254 followed by 7xx or 1xx and 6 more digits. */
 const KENYAN_E164 = /^\+254[17]\d{8}$/;
 
@@ -22,16 +20,6 @@ export function normalizeKenyanPhone(input: string): string | null {
   const e164 = `+254${national}`;
   return KENYAN_E164.test(e164) ? e164 : null;
 }
-
-/** Validates a Kenyan phone number and transforms it to E.164. */
-export const kenyanPhoneSchema = z.string().transform((value, ctx) => {
-  const normalized = normalizeKenyanPhone(value);
-  if (!normalized) {
-    ctx.addIssue({ code: "custom", message: "Enter a valid Kenyan mobile number" });
-    return z.NEVER;
-  }
-  return normalized;
-});
 
 /** Digits-only form required by `https://wa.me/<number>` links (no `+`). */
 export function toWhatsAppNumber(e164: string): string {
@@ -59,16 +47,3 @@ export function normalizePhoneNumber(input: string): string | null {
   // E.164: a country code (never starting with 0) and up to 15 digits in total.
   return /^\+[1-9]\d{7,14}$/.test(international) ? international : null;
 }
-
-/** Validates a WhatsApp number (Kenyan or international) and transforms it to E.164. */
-export const whatsappNumberSchema = z.string().transform((value, ctx) => {
-  const normalized = normalizePhoneNumber(value);
-  if (!normalized) {
-    ctx.addIssue({
-      code: "custom",
-      message: "Enter a valid WhatsApp number, for example 0712 345 678 or +44 7700 900123",
-    });
-    return z.NEVER;
-  }
-  return normalized;
-});

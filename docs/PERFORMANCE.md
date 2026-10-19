@@ -52,10 +52,21 @@ so expect it to be noticeably slower on low-end phones than on a laptop.
 
 ### Still to do for the website (not blocking the pilot)
 
-- About 45 KB of the remaining JavaScript is validation code (zod) pulled in because public pages
-  import a few constants from the shared package's single entry file, which also defines every form
-  schema. Splitting constants from schemas inside `packages/shared` would remove it from the home path.
 - Re-measure after the first real photos are live; photos will dominate page weight.
+
+### Validation code removed from the first page (20 October 2026)
+
+The validation library (zod) was still downloaded by every visitor, because the "Enquire on
+WhatsApp" helpers, the web-address check and the quote-category check lived in files that also
+defined form schemas. They are now in separate files (`phone.ts` / `phone-schemas.ts`, `urls.ts`,
+`quotes.ts`), and a test (`packages/shared/src/light-modules.test.ts`) fails if one of the light
+files ever imports zod again.
+
+Measured on the production build: the JavaScript that `index.html` tells the browser to fetch up
+front went from about 157 KB to **135 KB compressed (about 14% less)**; the 21 KB validation chunk
+is no longer among them and now loads only with the sign-in, account and form pages. This is a size
+measurement only: Lighthouse was **not** re-run, so the effect on loading time is unmeasured. The
+main bundle (88 KB) is mostly React, the router and the data library.
 
 ## Photos
 

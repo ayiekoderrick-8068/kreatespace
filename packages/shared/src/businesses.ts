@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { KENYAN_COUNTIES } from "./kenya.js";
-import { whatsappNumberSchema } from "./phone.js";
+import { whatsappNumberSchema } from "./phone-schemas.js";
+import { isSafeWebUrl } from "./urls.js";
 
 export const BUSINESS_STATUSES = [
   "DRAFT",
@@ -40,21 +41,6 @@ export const IMAGE_EXTENSIONS: Record<(typeof IMAGE_CONTENT_TYPES)[number], stri
 };
 export const PORTFOLIO_MIN_IMAGES = 1;
 export const PORTFOLIO_MAX_IMAGES = 6;
-
-/** Accepts only absolute http(s) URLs with a real hostname. */
-export function isSafeWebUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return (
-      (url.protocol === "http:" || url.protocol === "https:") &&
-      url.hostname.includes(".") &&
-      !url.username &&
-      !url.password
-    );
-  } catch {
-    return false;
-  }
-}
 
 const optionalWebsiteSchema = z
   .string()

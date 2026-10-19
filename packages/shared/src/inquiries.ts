@@ -1,12 +1,5 @@
 import { z } from "zod";
 
-/** Categories where customers often want a tailored quote rather than a ready-made item. */
-export const QUOTE_CATEGORY_SLUGS = ["photography", "event-decor"] as const;
-
-export function supportsQuoteRequests(categorySlug: string): boolean {
-  return (QUOTE_CATEGORY_SLUGS as readonly string[]).includes(categorySlug);
-}
-
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
 /**
