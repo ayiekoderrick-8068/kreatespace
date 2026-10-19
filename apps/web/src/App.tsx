@@ -29,6 +29,11 @@ const BusinessReviewPage = lazyPage(
   () => import("./pages/admin/BusinessReviewPage"),
   "BusinessReviewPage",
 );
+const CreationsPage = lazyPage(() => import("./pages/admin/CreationsPage"), "CreationsPage");
+const CreationReviewPage = lazyPage(
+  () => import("./pages/admin/CreationReviewPage"),
+  "CreationReviewPage",
+);
 const InvitationsPage = lazyPage(() => import("./pages/admin/InvitationsPage"), "InvitationsPage");
 const InvitePage = lazyPage(() => import("./pages/InvitePage"), "InvitePage");
 const SellerDashboardPage = lazyPage(
@@ -116,6 +121,8 @@ export const routes: RouteObject[] = [
           { index: true, element: <Navigate to="/admin/businesses" replace /> },
           { path: "businesses", element: <BusinessesPage /> },
           { path: "businesses/:id", element: <BusinessReviewPage /> },
+          { path: "creations", element: <CreationsPage /> },
+          { path: "creations/:id", element: <CreationReviewPage /> },
           { path: "invitations", element: <InvitationsPage /> },
         ],
       },
