@@ -51,6 +51,10 @@ const WebsiteRequestsAdminPage = lazyPage(
   () => import("./pages/admin/WebsiteRequestsAdminPage"),
   "WebsiteRequestsAdminPage",
 );
+const ImportsAdminPage = lazyPage(
+  () => import("./pages/admin/ImportsAdminPage"),
+  "ImportsAdminPage",
+);
 const AnalyticsPage = lazyPage(() => import("./pages/seller/AnalyticsPage"), "AnalyticsPage");
 const AnalyticsAdminPage = lazyPage(
   () => import("./pages/admin/AnalyticsAdminPage"),
@@ -174,6 +178,7 @@ export const routes: RouteObject[] = [
           { path: "invitations", element: <InvitationsPage /> },
           { path: "analytics", element: <AnalyticsAdminPage /> },
           { path: "website-requests", element: <WebsiteRequestsAdminPage /> },
+          { path: "imports", element: <ImportsAdminPage /> },
         ],
       },
       { path: "*", element: <NotFoundPage /> },
