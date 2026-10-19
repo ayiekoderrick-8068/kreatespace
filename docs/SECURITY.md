@@ -80,8 +80,13 @@ supplied by people. Controls, each covered by tests in `apps/api/src/imports/`:
 - **Supabase's default email sender** is for testing and is rate-limited: configure your own SMTP.
 - **No third-party penetration test** has been done.
 - **A `pg` deprecation warning** ("client.query() while already executing a query") appears in test
-  and e2e output. It is not tied to an identified code path here; keep `pg` on 8.x (as it is) and
-  investigate before moving to a newer major version.
+  and e2e output. **Cause (traced with `--trace-deprecation`):** `@prisma/adapter-pg`
+  (`PgTransaction.performIO`) lets Prisma run some queries at the same time on one connection inside
+  an interactive transaction. It is not application code. 7.10.1 is the latest stable adapter, and
+  the only newer Prisma is an 8.0 release candidate, so there is no safe supported fix yet. With
+  `pg` 8 it is only a warning and behaviour is correct; `pg` 9 would turn it into an error. A test
+  (`security/dependencies.test.ts`) fails if `pg` is raised to 9 first. Revisit when Prisma 8 is
+  stable.
 - **Legal and privacy documents are missing** (see `docs/PILOT_CHECKLIST.md`).
 
 ## Reporting a problem
