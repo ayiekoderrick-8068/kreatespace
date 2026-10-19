@@ -101,6 +101,8 @@ test("a returning administrator is asked for a code, not to set up again, and lo
   expect((await adminApiStatus(second)).status).toBe(200);
 
   // Logging out and back in with just the password closes it again.
+  // The header's Log out button is hidden on phones, where it lives on the account page.
+  if (test.info().project.use.isMobile) await second.goto("/account");
   await second.getByRole("button", { name: "Log out" }).first().click();
   await passwordLogin(second, email);
   await second.goto("/admin/businesses");

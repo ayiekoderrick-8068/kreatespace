@@ -38,6 +38,9 @@ test("a visitor can discover, filter, open a creation and reach the business —
   await page.getByRole("searchbox", { name: "Search creations" }).fill(`wedding zq${tag}`);
   await page.getByRole("button", { name: "Search" }).click();
   await expect(page).toHaveURL(/\/explore\?q=wedding/);
+  // The address changes a moment before the old page is replaced, so wait for the new page's
+  // heading; a strict-mode match on both pages at once is not retried.
+  await expect(page.getByRole("heading", { level: 1, name: "Explore creations" })).toBeVisible();
   await expect(page.getByRole("link", { name: `Wedding cake zq${tag}` })).toBeVisible();
   await expect(page.getByRole("link", { name: `Bridal makeup zq${tag}` })).toBeVisible();
   // Not a match for "wedding": the birthday cake from the same bakery.
