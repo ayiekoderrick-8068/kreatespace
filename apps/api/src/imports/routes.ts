@@ -9,6 +9,7 @@ import {
 import { requireRole } from "../auth/authorize.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import { HttpError, parseInput } from "../http/errors.js";
+import { describeError } from "../http/log.js";
 import type { MediaStorage } from "../storage/media-storage.js";
 import {
   acceptItem,
@@ -47,7 +48,7 @@ const noStore: RequestHandler = (_req, res, next) => {
 
 const inBackground = (run: () => Promise<void>) => {
   setImmediate(() => {
-    run().catch((error) => console.error("Import crashed", error));
+    run().catch((error) => console.error("Import crashed", describeError(error)));
   });
 };
 

@@ -12,6 +12,7 @@ import {
 import { recordAudit } from "../audit.js";
 import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
 import { HttpError, conflict, notFound, parseInput } from "../http/errors.js";
+import { describeError } from "../http/log.js";
 import { createDraftCreation } from "../portfolio/service.js";
 import {
   InvalidImageError,
@@ -402,7 +403,7 @@ export async function runImportJob(
       console.warn(`Import ${jobId} stopped: ${error.code} ${error.detail ?? ""}`);
     } else {
       failureCode = "INTERNAL";
-      console.error(`Import ${jobId} failed`, error);
+      console.error(`Import ${jobId} failed`, describeError(error));
     }
   }
 

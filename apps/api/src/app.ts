@@ -6,6 +6,7 @@ import { requireAuth, type AuthDeps } from "./auth/middleware.js";
 import type { Env } from "./config/env.js";
 import type { PrismaClient } from "./generated/prisma/client.js";
 import { HttpError } from "./http/errors.js";
+import { describeError } from "./http/log.js";
 import { createRateLimiter } from "./http/rate-limit.js";
 import { adminAnalyticsRoutes, sellerAnalyticsRoutes } from "./analytics/routes.js";
 import { adminBusinessRoutes } from "./businesses/admin-routes.js";
@@ -178,17 +179,7 @@ export function createApp(
       typeof err?.status === "number" && err.status >= 400 && err.status < 500 ? err.status : 500;
     if (status === 500) {
       // Log what is needed to diagnose without dumping request data or query values.
-      console.error("Unhandled error", {
-        name: err?.name,
-        code: err?.code,
-        message: String(err?.message ?? "")
-          .split("\n")
-          .pop(),
-        stack: String(err?.stack ?? "")
-          .split("\n")
-          .slice(0, 6)
-          .join("\n"),
-      });
+      console.error("Unhandled error", describeError(err));
     }
     res.status(status).json({
       error: {
