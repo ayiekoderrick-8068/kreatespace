@@ -4,6 +4,25 @@
 
 A Pinterest-inspired platform where customers discover Kenyan creative businesses, explore their creations, and contact sellers directly through their websites or WhatsApp.
 
+## What it does
+
+- **Customers** browse, search and filter approved creations without an account, save favourites,
+  and contact businesses on WhatsApp or through their websites.
+- **Sellers** (invited during the pilot) register a business, manage up to 20 creations with 5 photos
+  each, offer optional service packages, see analytics, and ask for website help.
+- **Administrators** invite sellers, review and approve businesses, creations and packages, handle
+  website requests, and import content from a seller's own website with the seller's permission.
+
+## Documentation
+
+| Guide                                              | What it covers                                                             |
+| -------------------------------------------------- | -------------------------------------------------------------------------- |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)           | Putting KreateSpace online: Supabase, Render, Vercel, every setting        |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md)           | Backups, restore rehearsal, monitoring, what to do when something breaks   |
+| [docs/SECURITY.md](docs/SECURITY.md)               | How access is controlled, review findings, importer safeguards, open risks |
+| [docs/PILOT_CHECKLIST.md](docs/PILOT_CHECKLIST.md) | Everything to confirm before and during the 15-business pilot              |
+| [docs/DATA_INVENTORY.md](docs/DATA_INVENTORY.md)   | What personal data is handled, for the privacy policy and terms            |
+
 ## Structure
 
 | Path              | Purpose                                         |
@@ -55,12 +74,14 @@ Business photos are stored in a **private** Supabase Storage bucket (`business-m
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 ```
 
-Database-backed API tests run only when `TEST_DATABASE_URL` points at a migrated PostgreSQL database (CI provides one). Browser tests use Playwright against the real API and database, with Supabase's auth and storage endpoints stubbed in the browser:
+Database-backed API tests run only when `TEST_DATABASE_URL` points at a migrated PostgreSQL database (CI provides one); without it they are skipped, not failed. Browser tests use Playwright against the real API and database, with Supabase's auth and storage endpoints stubbed in the browser. They cover the customer, seller and administrator journeys on Android, iPhone and desktop profiles, check that every page fits six screen sizes without sideways scrolling, and run automated accessibility (axe) checks:
 
 ```bash
 pnpm --filter @kreatespace/e2e exec playwright install chromium
 E2E_DATABASE_URL=postgresql://… pnpm test:e2e
 ```
+
+`pnpm audit --audit-level high` checks dependencies, and `scripts/restore-drill.sh` rehearses a database restore (see [docs/OPERATIONS.md](docs/OPERATIONS.md)).
 
 ## Discovery
 
@@ -74,7 +95,7 @@ The public site (`/`, `/explore`, `/creations/:id`, `/businesses/:slug`, `/saved
 
 ### Development fixtures
 
-Sellers cannot publish creations yet (that arrives with seller creation management), so the feed is empty on a fresh database. To see the pages with content:
+A fresh database has no approved businesses, so the public feed is empty until sellers are invited and approved. To see the pages with content while developing:
 
 ```bash
 pnpm --filter @kreatespace/api seed:dev            # add labelled placeholder content
