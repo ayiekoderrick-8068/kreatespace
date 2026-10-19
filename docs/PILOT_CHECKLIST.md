@@ -6,15 +6,17 @@ only when you have seen it work yourself, not because a document says it should.
 
 ## 0. Blockers
 
-- [ ] **BLOCKER: terms and privacy.** The seller sign-up asks people to tick "I agree to the
-      KreateSpace seller terms", but **the site has no terms page and no privacy policy**. Have both
-      written and reviewed by a lawyer who knows Kenyan law (start from `docs/DATA_INVENTORY.md`),
-      publish them at fixed addresses, and link them from the sign-up form, the seller wizard and
-      the footer.
+- [ ] **BLOCKER: legal review of terms and privacy.** The site now has terms, seller terms and a
+      privacy policy at `/terms`, `/seller-terms` and `/privacy`, linked from sign-up, the seller
+      wizard and the footer, and acceptance is recorded. They are **engineering drafts**: have them
+      reviewed by a lawyer who knows Kenyan law (start from `docs/DATA_INVENTORY.md`) and change the
+      text and version before launch.
 - [ ] **BLOCKER: Data Protection Act.** Confirm with a lawyer whether KreateSpace must register with
       the Office of the Data Protection Commissioner and what notices it owes people.
-- [ ] **BLOCKER: a way to delete an account and answer data requests**, written down, with a named
-      person and a response time (see the end of `docs/DATA_INVENTORY.md`).
+- [ ] **BLOCKER: decide the deletion and data-request process.** Self-service account deletion and
+      data export now exist (`docs/ACCOUNT_DELETION.md`). Still needed from you: a named person
+      who checks **Admin → Deletions** for business owners' requests, the response time, and the
+      lawyer's answer on what must be kept and for how long.
 - [ ] **BLOCKER: backups.** Confirm what Supabase backs up on your plan, set up your own dumps and
       photo copies, and run `scripts/restore-drill.sh` against a real backup (`docs/OPERATIONS.md`).
 - [ ] **BLOCKER: real email.** Configure your own SMTP provider in Supabase and test verification and
@@ -26,8 +28,10 @@ only when you have seen it work yourself, not because a document says it should.
 ## 1. Accounts and roles
 
 - [ ] The first administrator exists (`admin:grant`); a second administrator exists as a backup.
-- [ ] Administrators use strong, unique passwords. (Multi-factor sign-in is available in Supabase but
-      is not enforced by the app: decide whether to turn it on for admin accounts.)
+- [ ] Administrators use strong, unique passwords. Two-step verification (an authenticator app) is
+      enforced by the server for every administrator route; each administrator sets it up on first
+      use. Keep `ADMIN_MFA_REQUIRED` at its default (`true`) in production, and see `docs/OPERATIONS.md`
+      for resetting a lost authenticator (`admin:reset-mfa`).
 - [ ] A customer account cannot reach `/seller` or `/admin` (try it).
 
 ## 2. Seller invitations
@@ -94,6 +98,7 @@ only when you have seen it work yourself, not because a document says it should.
 ## 9. Known limits to tell the pilot sellers
 
 - Invitation links are shared by hand; there is no invitation email yet.
-- There is no self-service account deletion yet.
+- Deleting an account waits 14 days, and a business owner's request also waits for an
+  administrator. Deletion happens in the daily clean-up, not instantly.
 - WhatsApp clicks measure the link being opened, not messages sent or sales.
 - Prices are shown only when a seller chooses to add one to a package.
