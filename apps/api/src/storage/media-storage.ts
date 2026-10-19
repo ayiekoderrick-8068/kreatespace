@@ -9,6 +9,12 @@ export interface MediaStorage {
   createReadUrls(paths: string[]): Promise<Map<string, string>>;
   /** Names of objects stored under a folder prefix (without the prefix). */
   listFolder(prefix: string): Promise<string[]>;
+  /** Objects under a folder prefix with their upload times, for cleaning up abandoned uploads. */
+  listObjects(prefix: string): Promise<{ name: string; createdAt: Date | null }[]>;
+  /** The stored bytes, or `null` when nothing was uploaded to that path. */
+  download(path: string): Promise<Buffer | null>;
+  /** Deletes objects. Missing objects are ignored. */
+  remove(paths: string[]): Promise<void>;
   /**
    * Optional: resized renditions for responsive images. Storage that cannot transform images
    * leaves this out and callers fall back to the original.
@@ -90,6 +96,27 @@ export function createSupabaseMediaStorage(config: SupabaseStorageConfig): Media
           },
         }
       : {}),
+
+    async listObjects(prefix) {
+      const { data, error } = await bucket().list(prefix.replace(/\/+$/, ""), { limit: 1000 });
+      if (error) throw new Error(`Could not list images: ${error.message}`);
+      return (data ?? []).map((item) => ({
+        name: item.name,
+        createdAt: item.created_at ? new Date(item.created_at) : null,
+      }));
+    },
+
+    async download(path) {
+      const { data, error } = await bucket().download(path);
+      if (error || !data) return null;
+      return Buffer.from(await data.arrayBuffer());
+    },
+
+    async remove(paths) {
+      if (paths.length === 0) return;
+      const { error } = await bucket().remove(paths);
+      if (error) throw new Error(`Could not remove images: ${error.message}`);
+    },
 
     async listFolder(prefix) {
       const { data, error } = await bucket().list(prefix.replace(/\/+$/, ""), { limit: 1000 });

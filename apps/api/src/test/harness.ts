@@ -147,6 +147,8 @@ export function createTestHarness(overrides: Partial<AppDeps> = {}) {
     sellerWithBusiness,
     newcomer,
     files: fake.files,
+    putFile: fake.put,
+    storage: fake.storage,
     categoryId,
     businessDetails,
     uploadImage,

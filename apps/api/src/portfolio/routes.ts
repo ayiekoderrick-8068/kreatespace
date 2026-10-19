@@ -1,10 +1,17 @@
 import { Router, type RequestHandler } from "express";
 import { z } from "zod";
-import { creationDetailsSchema, creationDraftSchema } from "@kreatespace/shared";
+import {
+  confirmImageSchema,
+  creationDetailsSchema,
+  creationDraftSchema,
+  imageOrderSchema,
+  uploadRequestSchema,
+} from "@kreatespace/shared";
 import { requireRole } from "../auth/authorize.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
-import { parseInput } from "../http/errors.js";
+import { HttpError, parseInput } from "../http/errors.js";
 import type { MediaStorage } from "../storage/media-storage.js";
+import { confirmImage, createImageUpload, removeImage, reorderImages } from "./images.js";
 import {
   archiveCreation,
   createCreation,
@@ -61,6 +68,43 @@ export function sellerCreationRoutes(deps: PortfolioDeps): Router {
   router.post("/:id/archive", writeLimiter, async (req, res) => {
     const creationId = parseInput(idSchema, req.params.id);
     await archiveCreation(prisma, { userId: req.user!.id, creationId });
+    res.json(await getOwnCreation(prisma, storage, { userId: req.user!.id, creationId }));
+  });
+
+  router.post("/:id/uploads", writeLimiter, async (req, res) => {
+    if (!storage) {
+      throw new HttpError(503, "STORAGE_NOT_CONFIGURED", "Image uploads are not available");
+    }
+    const creationId = parseInput(idSchema, req.params.id);
+    const upload = parseInput(uploadRequestSchema, req.body);
+    res
+      .status(201)
+      .json(await createImageUpload(prisma, storage, { userId: req.user!.id, creationId, upload }));
+  });
+
+  router.post("/:id/images", writeLimiter, async (req, res) => {
+    if (!storage) {
+      throw new HttpError(503, "STORAGE_NOT_CONFIGURED", "Image uploads are not available");
+    }
+    const creationId = parseInput(idSchema, req.params.id);
+    const { path } = parseInput(confirmImageSchema, req.body);
+    await confirmImage(prisma, storage, { userId: req.user!.id, creationId, path });
+    res
+      .status(201)
+      .json(await getOwnCreation(prisma, storage, { userId: req.user!.id, creationId }));
+  });
+
+  router.put("/:id/images/order", writeLimiter, async (req, res) => {
+    const creationId = parseInput(idSchema, req.params.id);
+    const { imageIds } = parseInput(imageOrderSchema, req.body);
+    await reorderImages(prisma, { userId: req.user!.id, creationId, imageIds });
+    res.json(await getOwnCreation(prisma, storage, { userId: req.user!.id, creationId }));
+  });
+
+  router.delete("/:id/images/:imageId", writeLimiter, async (req, res) => {
+    const creationId = parseInput(idSchema, req.params.id);
+    const imageId = parseInput(idSchema, req.params.imageId);
+    await removeImage(prisma, storage, { userId: req.user!.id, creationId, imageId });
     res.json(await getOwnCreation(prisma, storage, { userId: req.user!.id, creationId }));
   });
 
