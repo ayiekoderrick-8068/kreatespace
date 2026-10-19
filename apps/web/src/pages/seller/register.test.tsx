@@ -247,6 +247,9 @@ describe("business registration form", () => {
     renderApp("/seller/register", createFakeAuth(fakeSession()).client);
     expect(await screen.findByLabelText(/^Business name/)).toHaveValue("Cakes by Maria");
     expect(screen.getByLabelText(/^City or town/)).toHaveValue("Westlands");
+    // The saved category and county are selected, not reset to the placeholder.
+    expect(screen.getByLabelText(/^Category/)).toHaveValue(CATEGORIES[0]!.id);
+    expect(screen.getByLabelText(/^County/)).toHaveValue("Nairobi");
   });
 
   it("does not offer the form once the application is under review", async () => {

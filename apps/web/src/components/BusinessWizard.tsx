@@ -244,6 +244,15 @@ export function BusinessWizard({ mode, business, onSubmitted }: Props) {
     }
   }
 
+  // A saved category can only be shown once the list of categories has loaded.
+  if (categories.isPending) {
+    return (
+      <p role="status" className="text-sm text-ink-muted">
+        Loading…
+      </p>
+    );
+  }
+
   const values = getValues();
   const categoryName = categories.data?.find((c) => c.id === values.categoryId)?.name;
 
