@@ -1,12 +1,18 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { buildCreation } from "../dev/builders.js";
-import { bearer, createTestHarness, hasDatabase, resetDatabase } from "../test/harness.js";
+import {
+  bearer,
+  createTestHarness,
+  skippedHarness,
+  hasDatabase,
+  resetDatabase,
+} from "../test/harness.js";
 
-const harness = hasDatabase ? createTestHarness() : null;
+const harness = hasDatabase ? createTestHarness() : skippedHarness();
 
 describe.skipIf(!hasDatabase)("portfolio limits", () => {
-  const { app, prisma, sellerWithBusiness } = harness!;
+  const { app, prisma, sellerWithBusiness } = harness;
 
   beforeEach(async () => {
     await resetDatabase(prisma);

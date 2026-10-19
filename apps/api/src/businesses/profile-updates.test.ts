@@ -1,11 +1,17 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
-import { bearer, createTestHarness, hasDatabase, resetDatabase } from "../test/harness.js";
+import {
+  bearer,
+  createTestHarness,
+  skippedHarness,
+  hasDatabase,
+  resetDatabase,
+} from "../test/harness.js";
 
-const harness = hasDatabase ? createTestHarness() : null;
+const harness = hasDatabase ? createTestHarness() : skippedHarness();
 
 describe.skipIf(!hasDatabase)("moderated business profile updates", () => {
-  const { app, prisma, actor, files, submittedBusiness, uploadImage } = harness!;
+  const { app, prisma, actor, files, submittedBusiness, uploadImage } = harness;
 
   beforeEach(async () => {
     await resetDatabase(prisma);

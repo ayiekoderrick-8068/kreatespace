@@ -1,12 +1,12 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
-import { createTestHarness, hasDatabase, resetDatabase } from "../test/harness.js";
+import { createTestHarness, skippedHarness, hasDatabase, resetDatabase } from "../test/harness.js";
 import { FIXTURE_SLUG_PREFIX, removeDevFixtures, seedDevFixtures } from "./fixtures.js";
 
-const harness = hasDatabase ? createTestHarness() : null;
+const harness = hasDatabase ? createTestHarness() : skippedHarness();
 
 describe.skipIf(!hasDatabase)("development fixtures", () => {
-  const { app, prisma } = harness!;
+  const { app, prisma } = harness;
 
   beforeEach(async () => {
     await resetDatabase(prisma);

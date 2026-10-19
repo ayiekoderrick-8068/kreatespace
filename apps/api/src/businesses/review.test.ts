@@ -1,12 +1,18 @@
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
-import { bearer, createTestHarness, hasDatabase, resetDatabase } from "../test/harness.js";
+import {
+  bearer,
+  createTestHarness,
+  skippedHarness,
+  hasDatabase,
+  resetDatabase,
+} from "../test/harness.js";
 
-const harness = hasDatabase ? createTestHarness() : null;
+const harness = hasDatabase ? createTestHarness() : skippedHarness();
 
 describe.skipIf(!hasDatabase)("business review workflow", () => {
-  const { app, prisma, actor, files, submittedBusiness } = harness!;
+  const { app, prisma, actor, files, submittedBusiness } = harness;
 
   beforeEach(async () => {
     await resetDatabase(prisma);
@@ -126,7 +132,7 @@ describe.skipIf(!hasDatabase)("business review workflow", () => {
       const created = await request(app)
         .post("/api/businesses")
         .set(bearer(owner))
-        .send(await harness!.businessDetails());
+        .send(await harness.businessDetails());
       const res = await decide(await actor("ADMIN"), created.body.businessId, {
         action: "APPROVE",
       });

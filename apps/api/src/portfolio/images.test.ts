@@ -4,12 +4,18 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { buildCreation } from "../dev/builders.js";
 import { cleanupOrphanedUploads } from "./images.js";
 import { fakeJpeg, fakePng } from "../test/fake-storage.js";
-import { bearer, createTestHarness, hasDatabase, resetDatabase } from "../test/harness.js";
+import {
+  bearer,
+  createTestHarness,
+  skippedHarness,
+  hasDatabase,
+  resetDatabase,
+} from "../test/harness.js";
 
-const harness = hasDatabase ? createTestHarness() : null;
+const harness = hasDatabase ? createTestHarness() : skippedHarness();
 
 describe.skipIf(!hasDatabase)("creation image uploads", () => {
-  const { app, prisma, sellerWithBusiness, files, putFile, storage } = harness!;
+  const { app, prisma, sellerWithBusiness, files, putFile, storage } = harness;
 
   beforeEach(async () => {
     await resetDatabase(prisma);

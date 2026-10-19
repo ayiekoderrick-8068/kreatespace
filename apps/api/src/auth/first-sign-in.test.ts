@@ -1,11 +1,17 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
-import { bearer, createTestHarness, hasDatabase, resetDatabase } from "../test/harness.js";
+import {
+  bearer,
+  createTestHarness,
+  skippedHarness,
+  hasDatabase,
+  resetDatabase,
+} from "../test/harness.js";
 
-const harness = hasDatabase ? createTestHarness() : null;
+const harness = hasDatabase ? createTestHarness() : skippedHarness();
 
 describe.skipIf(!hasDatabase)("a user's first requests", () => {
-  const { app, prisma, newcomer, actor } = harness!;
+  const { app, prisma, newcomer, actor } = harness;
 
   beforeEach(async () => {
     await resetDatabase(prisma);

@@ -1,16 +1,22 @@
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
-import { bearer, createTestHarness, hasDatabase, resetDatabase } from "../test/harness.js";
+import {
+  bearer,
+  createTestHarness,
+  skippedHarness,
+  hasDatabase,
+  resetDatabase,
+} from "../test/harness.js";
 import { hashToken } from "./service.js";
 
-const harness = hasDatabase ? createTestHarness() : null;
+const harness = hasDatabase ? createTestHarness() : skippedHarness();
 
 function tokenFromUrl(inviteUrl: string): string {
   return inviteUrl.split("/invite/")[1]!;
 }
 
 describe.skipIf(!hasDatabase)("seller invitations", () => {
-  const { app, prisma, actor, newcomer } = harness!;
+  const { app, prisma, actor, newcomer } = harness;
 
   beforeEach(async () => {
     await resetDatabase(prisma);

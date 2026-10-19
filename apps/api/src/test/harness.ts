@@ -22,6 +22,14 @@ export async function resetDatabase(prisma: PrismaClient): Promise<void> {
   await prisma.$executeRawUnsafe('TRUNCATE TABLE "users" CASCADE');
 }
 
+/**
+ * Stand-in for suites that are skipped because no database is configured. Vitest still runs a
+ * skipped suite's body while collecting tests, so destructuring a null harness would crash the file.
+ */
+export function skippedHarness(): ReturnType<typeof createTestHarness> {
+  return {} as ReturnType<typeof createTestHarness>;
+}
+
 export interface TestActor {
   id: string;
   email: string;

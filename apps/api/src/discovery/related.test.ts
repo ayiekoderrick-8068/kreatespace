@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { beforeEach, describe, expect, it } from "vitest";
 import { buildBusiness, buildCreation } from "../dev/builders.js";
-import { createTestHarness, hasDatabase, resetDatabase } from "../test/harness.js";
+import { createTestHarness, skippedHarness, hasDatabase, resetDatabase } from "../test/harness.js";
 
-const harness = hasDatabase ? createTestHarness() : null;
+const harness = hasDatabase ? createTestHarness() : skippedHarness();
 
 describe.skipIf(!hasDatabase)("related creations", () => {
-  const { app, prisma } = harness!;
+  const { app, prisma } = harness;
 
   beforeEach(async () => {
     await resetDatabase(prisma);
