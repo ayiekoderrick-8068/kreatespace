@@ -5,6 +5,9 @@ let client: SupabaseClient | null | undefined;
 /**
  * Returns the browser Supabase client, or `null` when the project is not configured.
  * Only the public anon key is used here; the service-role key must never reach the frontend.
+ *
+ * Import this module with `import("./supabase")` rather than at the top of a file: it is a large
+ * library that the home page can paint without.
  */
 export function getSupabase(): SupabaseClient | null {
   if (client === undefined) {
@@ -14,5 +17,3 @@ export function getSupabase(): SupabaseClient | null {
   }
   return client;
 }
-
-export const isGoogleAuthEnabled = import.meta.env.VITE_GOOGLE_AUTH_ENABLED === "true";

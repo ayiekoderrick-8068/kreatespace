@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { FormMessage, SecondaryButton } from "../components/forms";
 import { GallerySkeleton, Masonry, Photo } from "../components/gallery";
-import { QuoteRequestForm } from "../components/QuoteRequestForm";
+import { LazyQuoteRequestForm } from "../components/LazyQuoteRequestForm";
 import { SaveButton } from "../components/SaveButton";
 import { ApiError } from "../lib/api";
 import { trackEvent, useTrackView } from "../lib/events";
@@ -238,7 +238,7 @@ export function CreationPage() {
                 <p className="mb-3 text-sm text-ink-muted">
                   Need something tailored? Share the details and we’ll prepare a message for you.
                 </p>
-                <QuoteRequestForm
+                <LazyQuoteRequestForm
                   businessName={business.name}
                   whatsappNumber={business.whatsappNumber}
                   subject={data.title}

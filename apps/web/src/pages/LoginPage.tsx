@@ -3,7 +3,7 @@ import { loginSchema, type LoginInput } from "@kreatespace/shared";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router";
-import { isGoogleAuthEnabled } from "../lib/supabase";
+import { isGoogleAuthEnabled } from "../lib/supabase-config";
 import { useAuth } from "../auth/AuthProvider";
 import {
   AuthLayout,

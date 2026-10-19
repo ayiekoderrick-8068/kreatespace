@@ -1,5 +1,4 @@
 import { IMAGE_CONTENT_TYPES, IMAGE_MAX_BYTES, type UploadRequest } from "@kreatespace/shared";
-import { getSupabase } from "./supabase";
 
 const BUCKET = import.meta.env.VITE_SUPABASE_STORAGE_BUCKET ?? "business-media";
 
@@ -23,6 +22,7 @@ export function uploadRequestFor(file: File): UploadRequest {
 
 /** Sends a file to a signed upload URL issued by the API. */
 export async function uploadToStorage(path: string, token: string, file: File): Promise<void> {
+  const { getSupabase } = await import("./supabase");
   const supabase = getSupabase();
   if (!supabase) throw new Error("Storage is not configured");
   const { error } = await supabase.storage

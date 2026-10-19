@@ -1,6 +1,15 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getSupabase } from "../lib/supabase";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { isSupabaseConfigured } from "../lib/supabase-config";
 import { authErrorMessage, isAlreadyRegistered } from "./errors";
 
 /** The subset of the Supabase auth client the app relies on (easy to fake in tests). */
@@ -45,6 +54,30 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const NOT_CONFIGURED = "Authentication is not configured for this environment.";
 
+/**
+ * Whether the browser could be signed in already: a stored Supabase session, or the address of a
+ * sign-in redirect (Google, password recovery, email links). Visitors without either never need the
+ * sign-in library just to browse, so it is only fetched when they actually sign in. If the browser
+ * will not say (storage blocked), assume yes.
+ */
+function mightHaveSession(): boolean {
+  try {
+    const { hash, search } = window.location;
+    if (
+      /[#?&](access_token|refresh_token|code|error_description|type)=/.test(`${hash}&${search}`)
+    ) {
+      return true;
+    }
+    for (let index = 0; index < window.localStorage.length; index++) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith("sb-") && key.endsWith("-auth-token")) return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 export function AuthProvider({
   children,
   client,
@@ -53,13 +86,41 @@ export function AuthProvider({
   /** Override for tests; defaults to the app's Supabase client. */
   client?: AuthClient | null;
 }) {
-  const auth: AuthClient | null = useMemo(
-    () => (client !== undefined ? client : (getSupabase()?.auth ?? null)),
-    [client],
-  );
+  const injected = client !== undefined;
+  const configured = injected ? client !== null : isSupabaseConfigured;
+
+  // The real client is a large library, so it is fetched after the first paint rather than before
+  // it: visitors can browse straight away and sign-in becomes available a moment later.
+  const loader = useRef<Promise<AuthClient | null> | null>(null);
+  const loadAuth = useCallback((): Promise<AuthClient | null> => {
+    loader.current ??= import("../lib/supabase").then(
+      (module) => module.getSupabase()?.auth ?? null,
+    );
+    return loader.current;
+  }, []);
+  const [loadedAuth, setLoadedAuth] = useState<AuthClient | null>(null);
+  const auth: AuthClient | null = injected ? client : loadedAuth;
+
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(Boolean(auth));
+  // Decided once, up front: whether there may be a session to restore (see mightHaveSession).
+  const [mayHaveSession] = useState(() =>
+    injected ? configured : configured && mightHaveSession(),
+  );
+  const [loading, setLoading] = useState(mayHaveSession);
   const [recovering, setRecovering] = useState(false);
+
+  useEffect(() => {
+    if (injected || !mayHaveSession) return;
+    let active = true;
+    void loadAuth().then((loaded) => {
+      if (!active) return;
+      setLoadedAuth(loaded);
+      if (!loaded) setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [injected, mayHaveSession, loadAuth]);
 
   useEffect(() => {
     if (!auth) return;
@@ -86,20 +147,30 @@ export function AuthProvider({
 
   const value = useMemo<AuthContextValue>(() => {
     const origin = window.location.origin;
+    /** The client, waiting for it to arrive if someone acts before it has loaded. */
+    const ready = async (): Promise<AuthClient | null> => {
+      if (auth) return auth;
+      if (injected || !configured) return null;
+      const loaded = await loadAuth();
+      setLoadedAuth(loaded);
+      return loaded;
+    };
     return {
-      configured: auth !== null,
+      configured,
       loading,
       session,
       user: session?.user ?? null,
       recovering,
       async signIn(email, password) {
-        if (!auth) return { error: NOT_CONFIGURED };
-        const { error } = await auth.signInWithPassword({ email, password });
+        const current = await ready();
+        if (!current) return { error: NOT_CONFIGURED };
+        const { error } = await current.signInWithPassword({ email, password });
         return { error: authErrorMessage(error) };
       },
       async signUp({ email, password, fullName }) {
-        if (!auth) return { error: NOT_CONFIGURED, needsEmailVerification: false };
-        const { data, error } = await auth.signUp({
+        const current = await ready();
+        if (!current) return { error: NOT_CONFIGURED, needsEmailVerification: false };
+        const { data, error } = await current.signUp({
           email,
           password,
           options: { data: { full_name: fullName }, emailRedirectTo: `${origin}/login` },
@@ -113,31 +184,34 @@ export function AuthProvider({
         };
       },
       async signOut() {
-        await auth?.signOut();
+        await (await ready())?.signOut();
       },
       async requestPasswordReset(email) {
-        if (!auth) return { error: NOT_CONFIGURED };
-        const { error } = await auth.resetPasswordForEmail(email, {
+        const current = await ready();
+        if (!current) return { error: NOT_CONFIGURED };
+        const { error } = await current.resetPasswordForEmail(email, {
           redirectTo: `${origin}/reset-password`,
         });
         return { error: authErrorMessage(error) };
       },
       async updatePassword(password) {
-        if (!auth) return { error: NOT_CONFIGURED };
-        const { error } = await auth.updateUser({ password });
+        const current = await ready();
+        if (!current) return { error: NOT_CONFIGURED };
+        const { error } = await current.updateUser({ password });
         if (!error) setRecovering(false);
         return { error: authErrorMessage(error) };
       },
       async signInWithGoogle() {
-        if (!auth) return { error: NOT_CONFIGURED };
-        const { error } = await auth.signInWithOAuth({
+        const current = await ready();
+        if (!current) return { error: NOT_CONFIGURED };
+        const { error } = await current.signInWithOAuth({
           provider: "google",
           options: { redirectTo: origin },
         });
         return { error: authErrorMessage(error) };
       },
     };
-  }, [auth, loading, session, recovering]);
+  }, [auth, injected, configured, loadAuth, loading, session, recovering]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

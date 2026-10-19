@@ -1,28 +1,48 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { lazy, useState, type ComponentType } from "react";
+import { Suspense, lazy, useState, type ComponentType, type ReactElement } from "react";
 import { Navigate, RouterProvider, createBrowserRouter, type RouteObject } from "react-router";
 import { AuthProvider } from "./auth/AuthProvider";
 import { Layout } from "./components/Layout";
 import { RequireRole } from "./components/RequireRole";
 import { AboutPage } from "./pages/AboutPage";
-import { AccountPage } from "./pages/AccountPage";
 import { CreationPage } from "./pages/CreationPage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { ForBusinessesPage } from "./pages/ForBusinessesPage";
-import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { HomePage } from "./pages/HomePage";
-import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PublicBusinessPage } from "./pages/PublicBusinessPage";
-import { RegisterPage } from "./pages/RegisterPage";
 import { SavedPage } from "./pages/SavedPage";
-import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 
 // Private areas (admin, seller tools, invitations) load only when visited, so the public pages
 // that most visitors see ship less JavaScript on mobile networks.
 function lazyPage<T extends Record<string, ComponentType>>(load: () => Promise<T>, name: keyof T) {
   return lazy(async () => ({ default: (await load())[name] as ComponentType }));
 }
+// Sign-in and account pages bring the form libraries with them, which browsing never needs.
+const AccountPage = lazyPage(() => import("./pages/AccountPage"), "AccountPage");
+const ForgotPasswordPage = lazyPage(
+  () => import("./pages/ForgotPasswordPage"),
+  "ForgotPasswordPage",
+);
+const LoginPage = lazyPage(() => import("./pages/LoginPage"), "LoginPage");
+const RegisterPage = lazyPage(() => import("./pages/RegisterPage"), "RegisterPage");
+const ResetPasswordPage = lazyPage(() => import("./pages/ResetPasswordPage"), "ResetPasswordPage");
+
+/** Pages outside the main layout have no loading boundary of their own. */
+function standalone(page: ReactElement) {
+  return (
+    <Suspense
+      fallback={
+        <p role="status" className="px-4 py-12 text-ink-muted">
+          Loading…
+        </p>
+      }
+    >
+      {page}
+    </Suspense>
+  );
+}
+
 const AdminLayout = lazyPage(() => import("./pages/admin/AdminLayout"), "AdminLayout");
 const BusinessesPage = lazyPage(() => import("./pages/admin/BusinessesPage"), "BusinessesPage");
 const BusinessReviewPage = lazyPage(
@@ -80,10 +100,10 @@ const SellerRegisterPage = lazyPage(
   "SellerRegisterPage",
 );
 export const routes: RouteObject[] = [
-  { path: "/login", element: <LoginPage /> },
-  { path: "/register", element: <RegisterPage /> },
-  { path: "/forgot-password", element: <ForgotPasswordPage /> },
-  { path: "/reset-password", element: <ResetPasswordPage /> },
+  { path: "/login", element: standalone(<LoginPage />) },
+  { path: "/register", element: standalone(<RegisterPage />) },
+  { path: "/forgot-password", element: standalone(<ForgotPasswordPage />) },
+  { path: "/reset-password", element: standalone(<ResetPasswordPage />) },
   {
     element: <Layout />,
     children: [

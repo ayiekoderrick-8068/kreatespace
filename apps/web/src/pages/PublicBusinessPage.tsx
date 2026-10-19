@@ -9,7 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Link, useParams } from "react-router";
 import { Masonry, Photo } from "../components/gallery";
-import { QuoteRequestForm } from "../components/QuoteRequestForm";
+import { LazyQuoteRequestForm } from "../components/LazyQuoteRequestForm";
 import { ApiError, apiRequest } from "../lib/api";
 import { trackEvent, useTrackView } from "../lib/events";
 import { queryKeys } from "../lib/queries";
@@ -39,8 +39,22 @@ export function PublicBusinessPage() {
 
   if (result.isPending) {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-12" role="status">
-        Loading…
+      // Roughly the height of the finished page, so the footer starts below the screen and does
+      // not jump down when the content arrives.
+      <main
+        className="mx-auto min-h-[90svh] max-w-4xl px-4 py-8"
+        role="status"
+        aria-label="Loading business"
+      >
+        <div className="skeleton h-8 w-2/3 rounded" />
+        <div className="skeleton mt-4 h-4 w-full rounded" />
+        <div className="skeleton mt-2 h-4 w-5/6 rounded" />
+        <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3">
+          <div className="skeleton aspect-[4/5] rounded-2xl" />
+          <div className="skeleton aspect-[4/5] rounded-2xl" />
+          <div className="skeleton hidden aspect-[4/5] rounded-2xl md:block" />
+        </div>
+        <p className="sr-only">Loading…</p>
       </main>
     );
   }
@@ -132,7 +146,7 @@ export function PublicBusinessPage() {
 
       {whatsappLink && business.categories.some((c) => supportsQuoteRequests(c.slug)) ? (
         <div className="mt-4">
-          <QuoteRequestForm
+          <LazyQuoteRequestForm
             businessName={business.businessName}
             whatsappNumber={business.whatsappNumber}
             pageUrl={`${window.location.origin}/businesses/${slug}`}
