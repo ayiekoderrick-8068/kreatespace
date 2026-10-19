@@ -269,7 +269,7 @@ export function ExplorePage() {
           )
         ) : (
           <>
-            <Masonry items={items} />
+            <Masonry items={items} heading="Creations" />
             <LoadMore
               hasMore={Boolean(feed.hasNextPage)}
               loading={feed.isFetchingNextPage}

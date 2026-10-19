@@ -120,19 +120,28 @@ export function CreationTile({
 export function Masonry({
   items,
   eagerCount = 4,
+  heading,
 }: {
   items: CreationCard[];
   /** The first few images load immediately; the rest load as they approach the screen. */
   eagerCount?: number;
+  /**
+   * A heading for screen readers, for pages where the creations sit directly under the page title.
+   * Without it their titles (h3) would skip a heading level.
+   */
+  heading?: string;
 }) {
   return (
-    <ul className="columns-2 gap-3 sm:gap-4 md:columns-3 lg:columns-4 2xl:columns-5">
-      {items.map((creation, index) => (
-        <li key={creation.id} className="mb-4 break-inside-avoid">
-          <CreationTile creation={creation} eager={index < eagerCount} />
-        </li>
-      ))}
-    </ul>
+    <>
+      {heading ? <h2 className="sr-only">{heading}</h2> : null}
+      <ul className="columns-2 gap-3 sm:gap-4 md:columns-3 lg:columns-4 2xl:columns-5">
+        {items.map((creation, index) => (
+          <li key={creation.id} className="mb-4 break-inside-avoid">
+            <CreationTile creation={creation} eager={index < eagerCount} />
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

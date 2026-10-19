@@ -27,10 +27,15 @@ function HeaderSearch() {
 
   // The homepage and Explore page have their own, larger search boxes.
   if (pathname === "/" || pathname.startsWith("/explore"))
-    return <div className="hidden flex-1 md:block" />;
+    return <div className="hidden flex-1 xl:block" />;
 
   return (
-    <form onSubmit={onSubmit} role="search" className="hidden max-w-xs flex-1 md:block">
+    <form
+      onSubmit={onSubmit}
+      role="search"
+      aria-label="Site search"
+      className="hidden max-w-xs flex-1 xl:block"
+    >
       <label htmlFor="header-search" className="sr-only">
         Search creations
       </label>
@@ -111,10 +116,14 @@ export function Layout() {
             <NavLink to="/explore" className={topLink}>
               Explore
             </NavLink>
-            <NavLink to="/about" className={topLink}>
+            {/* These two stay in the footer on tablets, where the header has no room for them. */}
+            <NavLink to="/about" className={(state) => `${topLink(state)} hidden lg:block`}>
               About
             </NavLink>
-            <NavLink to="/for-businesses" className={topLink}>
+            <NavLink
+              to="/for-businesses"
+              className={(state) => `${topLink(state)} hidden lg:block`}
+            >
               For Businesses
             </NavLink>
             {profile?.role === "SELLER" ? (

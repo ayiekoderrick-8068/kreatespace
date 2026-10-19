@@ -73,7 +73,12 @@ export function AnalyticsPage() {
                 No creation has been viewed or clicked in this period.
               </p>
             ) : (
-              <div className="mt-2 overflow-x-auto">
+              <div
+                role="region"
+                aria-label="Most popular creations"
+                tabIndex={0}
+                className="mt-2 overflow-x-auto"
+              >
                 <table className="w-full min-w-[28rem] text-left text-sm">
                   <thead>
                     <tr className="text-ink-muted">

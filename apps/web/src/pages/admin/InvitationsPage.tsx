@@ -131,7 +131,12 @@ export function InvitationsPage() {
         ) : invitations.data.length === 0 ? (
           <p className="mt-3 text-ink-muted">No invitations yet.</p>
         ) : (
-          <div className="mt-3 overflow-x-auto rounded-xl border border-cream-dark bg-white">
+          <div
+            role="region"
+            aria-label="Invitations"
+            tabIndex={0}
+            className="mt-3 overflow-x-auto rounded-xl border border-cream-dark bg-white"
+          >
             <table className="w-full text-left text-sm">
               <thead className="bg-cream-dark/60 text-ink-muted">
                 <tr>

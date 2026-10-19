@@ -73,7 +73,7 @@ export function SavedPage() {
           </div>
         ) : (
           <>
-            <Masonry items={items} eagerCount={0} />
+            <Masonry items={items} eagerCount={0} heading="Your saved creations" />
             <LoadMore
               hasMore={Boolean(feed.hasNextPage)}
               loading={feed.isFetchingNextPage}

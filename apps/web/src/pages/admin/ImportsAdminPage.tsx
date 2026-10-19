@@ -262,7 +262,7 @@ function JobsSection({ notice }: { notice: string | null }) {
       ) : jobs.data.jobs.length === 0 ? (
         <p className="mt-3 text-sm text-ink-muted">No imports have been run yet.</p>
       ) : (
-        <div className="mt-3 overflow-x-auto">
+        <div role="region" aria-label="Imports" tabIndex={0} className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[34rem] text-left text-sm">
             <thead>
               <tr className="text-ink-muted">

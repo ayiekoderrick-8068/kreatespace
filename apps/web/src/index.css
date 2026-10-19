@@ -59,3 +59,12 @@ h3 {
   animation: kreate-pulse 1.6s ease-in-out infinite;
   background-color: var(--color-cream-dark);
 }
+
+/*
+ * A visually hidden label inside a horizontally scrolling box (such as a table's "Actions" heading)
+ * must be positioned against that box. Otherwise it is placed against the page, which can stretch
+ * the whole page sideways on small screens.
+ */
+.overflow-x-auto {
+  position: relative;
+}

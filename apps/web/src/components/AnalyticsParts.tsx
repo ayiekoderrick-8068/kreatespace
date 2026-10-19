@@ -40,7 +40,7 @@ export function Tile({ label, value, note }: { label: string; value: number; not
     <div className="rounded-xl border border-cream-dark bg-white px-4 py-3">
       <dt className="text-sm text-ink-muted">{label}</dt>
       <dd className="mt-0.5 text-3xl font-semibold">{number.format(value)}</dd>
-      {note ? <p className="mt-0.5 text-xs text-ink-muted">{note}</p> : null}
+      {note ? <dd className="mt-0.5 text-xs text-ink-muted">{note}</dd> : null}
     </div>
   );
 }

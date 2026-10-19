@@ -101,7 +101,12 @@ export function BusinessesPage() {
           <p className="text-sm text-ink-muted" aria-live="polite">
             {list.data.total} {list.data.total === 1 ? "business" : "businesses"}
           </p>
-          <div className="overflow-x-auto rounded-xl border border-cream-dark bg-white">
+          <div
+            role="region"
+            aria-label="Businesses"
+            tabIndex={0}
+            className="overflow-x-auto rounded-xl border border-cream-dark bg-white"
+          >
             <table className="w-full text-left text-sm">
               <thead className="bg-cream-dark/60 text-ink-muted">
                 <tr>

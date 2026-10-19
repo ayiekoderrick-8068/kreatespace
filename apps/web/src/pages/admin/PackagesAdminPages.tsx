@@ -61,7 +61,12 @@ export function PackagesAdminPage() {
         </p>
       ) : (
         <>
-          <div className="overflow-x-auto rounded-xl border border-cream-dark bg-white">
+          <div
+            role="region"
+            aria-label="Packages"
+            tabIndex={0}
+            className="overflow-x-auto rounded-xl border border-cream-dark bg-white"
+          >
             <table className="w-full text-left text-sm">
               <thead className="bg-cream-dark/60 text-ink-muted">
                 <tr>

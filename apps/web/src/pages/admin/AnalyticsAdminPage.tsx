@@ -126,7 +126,12 @@ export function AnalyticsAdminPage() {
             {analytics.data.topBusinesses.length === 0 ? (
               <p className="mt-2 text-sm text-ink-muted">No activity recorded in this period.</p>
             ) : (
-              <div className="mt-2 overflow-x-auto">
+              <div
+                role="region"
+                aria-label="Table of most active businesses"
+                tabIndex={0}
+                className="mt-2 overflow-x-auto"
+              >
                 <table className="w-full min-w-[28rem] text-left text-sm">
                   <thead>
                     <tr className="text-ink-muted">
