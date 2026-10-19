@@ -73,7 +73,16 @@ test("an invited seller registers, an admin approves, and the business goes publ
   await expect(seller.getByText("Step 3 of 3")).toBeVisible();
   await seller.getByRole("button", { name: "Submit for review" }).click();
   await expect(seller.getByText("You must accept the seller terms")).toBeVisible();
-  await seller.getByLabel(/I agree to the KreateSpace seller terms/).check();
+  // The documents can be read before agreeing, and open in a new tab so the application is kept.
+  const form = seller.getByRole("main");
+  const sellerTerms = form.getByRole("link", { name: "Seller Terms" });
+  await expect(sellerTerms).toHaveAttribute("href", "/seller-terms");
+  await expect(sellerTerms).toHaveAttribute("target", "_blank");
+  await expect(form.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute(
+    "href",
+    "/privacy",
+  );
+  await seller.getByLabel(/agree to the KreateSpace\s+Seller Terms/).check();
   await seller.getByLabel(/I own, or have permission to share/).check();
   await seller.getByRole("button", { name: "Submit for review" }).click();
   await expect(seller.getByRole("heading", { name: "Application submitted" })).toBeVisible();

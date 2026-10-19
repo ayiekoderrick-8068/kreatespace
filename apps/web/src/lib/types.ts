@@ -10,6 +10,8 @@ export interface CurrentUser {
   email: string;
   fullName: string | null;
   role: UserRole;
+  /** Administrators only: whether two-step verification is required and has been completed. */
+  mfa?: { required: boolean; satisfied: boolean };
 }
 
 export interface Category {

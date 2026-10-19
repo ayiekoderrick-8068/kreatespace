@@ -23,7 +23,25 @@ export type AuthClient = Pick<
   | "resetPasswordForEmail"
   | "updateUser"
   | "signInWithOAuth"
+  | "mfa"
 >;
+
+/** Where a person stands with two-step verification. */
+export interface MfaStatus {
+  /** "aal2" once a code from the authenticator app has been verified in this session. */
+  level: "aal1" | "aal2";
+  /** The authenticator they have already set up, if any. */
+  verifiedFactorId: string | null;
+  error?: string;
+}
+
+export interface MfaEnrollment {
+  factorId: string;
+  /** A picture of the QR code, as an image address. */
+  qrCode: string;
+  /** The same key as text, for typing into an app by hand. */
+  secret: string;
+}
 
 export interface AuthResult {
   error: string | null;
@@ -54,11 +72,20 @@ export interface AuthContextValue {
   requestPasswordReset(email: string): Promise<AuthResult>;
   updatePassword(password: string): Promise<AuthResult>;
   signInWithGoogle(): Promise<AuthResult>;
+  mfa: {
+    status(): Promise<MfaStatus>;
+    /** Begins setting up an authenticator app; any abandoned earlier attempt is discarded. */
+    startEnrollment(): Promise<MfaEnrollment | { error: string }>;
+    /** Checks a 6-digit code, either to finish setup or to complete a sign-in. */
+    verify(factorId: string, code: string): Promise<AuthResult>;
+    discardEnrollment(factorId: string): Promise<void>;
+  };
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const NOT_CONFIGURED = "Authentication is not configured for this environment.";
+const GENERIC_MFA_ERROR = "Two-step verification isn’t available right now. Please try again.";
 
 /**
  * Whether the browser could be signed in already: a stored Supabase session, or the address of a
@@ -214,6 +241,53 @@ export function AuthProvider({
         const { error } = await current.updateUser({ password });
         if (!error) setRecovering(false);
         return { error: authErrorMessage(error) };
+      },
+      mfa: {
+        async status() {
+          const current = await ready();
+          if (!current) return { level: "aal1", verifiedFactorId: null, error: NOT_CONFIGURED };
+          const [level, factors] = await Promise.all([
+            current.mfa.getAuthenticatorAssuranceLevel(),
+            current.mfa.listFactors(),
+          ]);
+          if (level.error || factors.error) {
+            return { level: "aal1", verifiedFactorId: null, error: GENERIC_MFA_ERROR };
+          }
+          return {
+            level: level.data.currentLevel === "aal2" ? "aal2" : "aal1",
+            verifiedFactorId: factors.data.totp[0]?.id ?? null,
+          };
+        },
+        async startEnrollment() {
+          const current = await ready();
+          if (!current) return { error: NOT_CONFIGURED };
+          // An earlier attempt that was never finished would otherwise block a new one.
+          const existing = await current.mfa.listFactors();
+          for (const factor of existing.data?.all ?? []) {
+            if (factor.factor_type === "totp" && factor.status === "unverified") {
+              await current.mfa.unenroll({ factorId: factor.id });
+            }
+          }
+          const { data, error } = await current.mfa.enroll({
+            factorType: "totp",
+            friendlyName: "Authenticator app",
+          });
+          if (error || !data) return { error: GENERIC_MFA_ERROR };
+          return { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret };
+        },
+        async verify(factorId, code) {
+          const current = await ready();
+          if (!current) return { error: NOT_CONFIGURED };
+          const { error } = await current.mfa.challengeAndVerify({ factorId, code });
+          return {
+            error: error
+              ? "That code didn’t work. Check the 6-digit code in your authenticator app and try again."
+              : null,
+          };
+        },
+        async discardEnrollment(factorId) {
+          await (await ready())?.mfa.unenroll({ factorId });
+        },
       },
       async signInWithGoogle() {
         const current = await ready();

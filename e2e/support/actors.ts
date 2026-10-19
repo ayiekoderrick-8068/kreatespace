@@ -1,6 +1,6 @@
 import { expect, test, type APIRequestContext, type Browser, type Page } from "@playwright/test";
 import { API_URL, ADMIN_EMAIL } from "./env.ts";
-import { accessTokenFor, mockSupabase } from "./supabase-mock.ts";
+import { TEST_TOTP_CODE, accessTokenFor, mockSupabase } from "./supabase-mock.ts";
 
 export const PASSWORD = "password123";
 
@@ -25,12 +25,27 @@ export async function newActor(browser: Browser): Promise<Page> {
   return context.newPage();
 }
 
-/** Fills in the login form on the current page and waits to leave it. */
+/**
+ * Fills in the login form on the current page and waits to leave it. Administrators then complete
+ * two-step verification, as they must in real life before the admin area opens.
+ */
 export async function logIn(page: Page, email: string): Promise<void> {
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(PASSWORD);
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).not.toHaveURL(/\/login/);
+  if (email.toLowerCase() === ADMIN_EMAIL) await completeAdminSecondStep(page);
+}
+
+/** Enters the stand-in authenticator code, whether this is first-time set-up or a returning sign-in. */
+export async function completeAdminSecondStep(page: Page): Promise<void> {
+  // Signing in returns to the page that asked for it; only go to the admin area if not already there.
+  if (!new URL(page.url()).pathname.startsWith("/admin")) await page.goto("/admin");
+  const gate = page.getByRole("region", { name: "Two-step verification" });
+  await expect(gate).toBeVisible();
+  await gate.getByLabel("6-digit code").fill(TEST_TOTP_CODE);
+  await gate.getByRole("button", { name: /Continue|Finish set-up/ }).click();
+  await expect(gate).toBeHidden();
 }
 
 /** The page must never scroll sideways: a common failure on small phones. */

@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router";
+import { AdminMfaGate } from "../../components/AdminMfaGate";
 
 const tab = ({ isActive }: { isActive: boolean }) =>
   `whitespace-nowrap border-b-2 px-1 pb-2 text-sm font-medium ${isActive ? "border-terracotta text-ink" : "border-transparent text-ink-muted hover:text-ink"}`;
@@ -34,7 +35,9 @@ export function AdminLayout() {
         </NavLink>
       </nav>
       <div className="mt-6">
-        <Outlet />
+        <AdminMfaGate>
+          <Outlet />
+        </AdminMfaGate>
       </div>
     </main>
   );

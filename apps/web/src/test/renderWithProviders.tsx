@@ -17,6 +17,13 @@ export interface FakeAuth {
     signOut: ReturnType<typeof vi.fn>;
     resetPasswordForEmail: ReturnType<typeof vi.fn>;
     updateUser: ReturnType<typeof vi.fn>;
+    mfa: {
+      getAuthenticatorAssuranceLevel: ReturnType<typeof vi.fn>;
+      listFactors: ReturnType<typeof vi.fn>;
+      enroll: ReturnType<typeof vi.fn>;
+      challengeAndVerify: ReturnType<typeof vi.fn>;
+      unenroll: ReturnType<typeof vi.fn>;
+    };
   };
 }
 
@@ -28,6 +35,28 @@ export function createFakeAuth(initialSession: Session | null = null): FakeAuth 
     signOut: vi.fn().mockResolvedValue({ error: null }),
     resetPasswordForEmail: vi.fn().mockResolvedValue({ data: {}, error: null }),
     updateUser: vi.fn().mockResolvedValue({ data: {}, error: null }),
+    // By default: signed in with a password only, and an authenticator already set up.
+    mfa: {
+      getAuthenticatorAssuranceLevel: vi
+        .fn()
+        .mockResolvedValue({ data: { currentLevel: "aal1", nextLevel: "aal2" }, error: null }),
+      listFactors: vi.fn().mockResolvedValue({
+        data: {
+          all: [{ id: "factor-1", factor_type: "totp", status: "verified" }],
+          totp: [{ id: "factor-1", status: "verified" }],
+        },
+        error: null,
+      }),
+      enroll: vi.fn().mockResolvedValue({
+        data: {
+          id: "factor-new",
+          totp: { qr_code: "data:image/svg+xml;utf8,<svg/>", secret: "JBSWY3DPEHPK3PXP" },
+        },
+        error: null,
+      }),
+      challengeAndVerify: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      unenroll: vi.fn().mockResolvedValue({ data: {}, error: null }),
+    },
   };
 
   const client = {
