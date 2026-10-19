@@ -43,5 +43,35 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
       .join("; ");
     throw new Error(`Invalid environment configuration — ${details}`);
   }
+  assertProductionSafe(result.data, source);
   return result.data;
+}
+
+const isLocal = (value: string) =>
+  /^(https?:\/\/)?(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(value);
+
+/**
+ * Refuses to start in production with settings that are only fit for a developer's machine:
+ * missing database or sign-in configuration, local or wildcard origins, or an insecure web URL.
+ */
+function assertProductionSafe(env: Env, source: NodeJS.ProcessEnv): void {
+  if (env.NODE_ENV !== "production") return;
+  const problems: string[] = [];
+  if (!env.DATABASE_URL) problems.push("DATABASE_URL is required");
+  if (!env.SUPABASE_URL) problems.push("SUPABASE_URL is required");
+  if (!env.SUPABASE_SERVICE_ROLE_KEY)
+    problems.push("SUPABASE_SERVICE_ROLE_KEY is required for image storage");
+  if (!source.CORS_ORIGIN) problems.push("CORS_ORIGIN must be set to the web app's address");
+  if (env.CORS_ORIGIN.some((origin) => origin === "*" || isLocal(origin))) {
+    problems.push("CORS_ORIGIN must list only the real web app origin(s), not * or localhost");
+  }
+  if (env.CORS_ORIGIN.some((origin) => !origin.startsWith("https://") && !isLocal(origin))) {
+    problems.push("CORS_ORIGIN must use https");
+  }
+  if (!source.WEB_URL || isLocal(env.WEB_URL) || !env.WEB_URL.startsWith("https://")) {
+    problems.push("WEB_URL must be the public https address of the web app");
+  }
+  if (problems.length > 0) {
+    throw new Error(`Unsafe production configuration — ${problems.join("; ")}`);
+  }
 }

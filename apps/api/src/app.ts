@@ -63,6 +63,9 @@ export function createApp(
     res.json({ status: "ok", service: `${PLATFORM_NAME} API` });
   });
 
+  // A broad per-IP ceiling for every other API route; sensitive routes add tighter limits.
+  app.use("/api", createRateLimiter({ windowMs: 60_000, max: 300 }, deps.rateLimiting !== false));
+
   const authenticate: RequestHandler = deps.auth
     ? requireAuth(deps.auth)
     : (_req, res) => {
@@ -160,7 +163,18 @@ export function createApp(
     const status =
       typeof err?.status === "number" && err.status >= 400 && err.status < 500 ? err.status : 500;
     if (status === 500) {
-      console.error(err);
+      // Log what is needed to diagnose without dumping request data or query values.
+      console.error("Unhandled error", {
+        name: err?.name,
+        code: err?.code,
+        message: String(err?.message ?? "")
+          .split("\n")
+          .pop(),
+        stack: String(err?.stack ?? "")
+          .split("\n")
+          .slice(0, 6)
+          .join("\n"),
+      });
     }
     res.status(status).json({
       error: {

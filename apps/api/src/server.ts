@@ -2,6 +2,7 @@ import { createApp, type AppDeps } from "./app.js";
 import { createSupabaseTokenVerifier } from "./auth/token-verifier.js";
 import { createPrismaUserStore } from "./auth/user-store.js";
 import { loadEnv } from "./config/env.js";
+import { failStaleJobs } from "./imports/service.js";
 import { getPrisma } from "./lib/prisma.js";
 import { createSupabaseMediaStorage } from "./storage/media-storage.js";
 
@@ -39,6 +40,35 @@ if (env.TRUST_PROXY === 0 && env.NODE_ENV === "production") {
   console.warn("TRUST_PROXY is 0 in production: rate limits will see the proxy's address");
 }
 
-app.listen(env.PORT, () => {
+// Imports that were running when the server last stopped can never finish; free their businesses.
+if (deps.prisma) {
+  const recovered = await failStaleJobs(deps.prisma, new Date(Date.now() + 15 * 60_000));
+  if (recovered > 0) console.warn(`Marked ${recovered} interrupted import(s) as failed`);
+}
+
+const server = app.listen(env.PORT, () => {
   console.log(`KreateSpace API listening on port ${env.PORT}`);
+});
+
+// Stop taking new requests, let current ones finish, then close the database connection.
+let stopping = false;
+function shutdown(signal: string) {
+  if (stopping) return;
+  stopping = true;
+  console.log(`${signal} received, shutting down`);
+  const force = setTimeout(() => process.exit(1), 10_000);
+  force.unref();
+  server.close(() => {
+    void (deps.prisma?.$disconnect() ?? Promise.resolve()).finally(() => process.exit(0));
+  });
+}
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+// Never print the full error object: it can carry request or query data.
+process.on("unhandledRejection", (reason) => {
+  console.error(
+    "Unhandled promise rejection",
+    reason instanceof Error ? reason.name : typeof reason,
+  );
 });

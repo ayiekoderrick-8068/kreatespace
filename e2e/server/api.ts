@@ -26,6 +26,9 @@ const storage: MediaStorage = {
     stored.add(path);
     return { uploadUrl: `${IMAGE_URL}/upload/${path}`, token: "e2e-upload-token" };
   },
+  async upload(path) {
+    stored.add(path);
+  },
   async createReadUrls(paths) {
     return new Map(
       paths

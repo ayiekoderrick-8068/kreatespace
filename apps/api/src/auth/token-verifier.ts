@@ -20,13 +20,15 @@ export class InvalidTokenError extends Error {
 /** Verifies a Supabase access token with the given key and maps its claims. */
 export function createTokenVerifier(
   key: VerificationKey,
-  options: { issuer: string },
+  options: { issuer: string; algorithms?: string[] },
 ): TokenVerifier {
   return async (token) => {
     try {
       const { payload } = await jwtVerify(token, key as JWTVerifyGetKey, {
         issuer: options.issuer,
         audience: "authenticated",
+        // Only the signing algorithms this project uses; never whatever the token asks for.
+        algorithms: options.algorithms,
       });
       if (typeof payload.sub !== "string" || typeof payload.email !== "string") {
         throw new InvalidTokenError("Token is missing required claims");
@@ -57,5 +59,8 @@ export function createSupabaseTokenVerifier(config: {
   const key: VerificationKey = config.jwtSecret
     ? new TextEncoder().encode(config.jwtSecret)
     : createRemoteJWKSet(new URL(`${issuer}/.well-known/jwks.json`));
-  return createTokenVerifier(key, { issuer });
+  return createTokenVerifier(key, {
+    issuer,
+    algorithms: config.jwtSecret ? ["HS256"] : ["RS256", "ES256", "EdDSA"],
+  });
 }
