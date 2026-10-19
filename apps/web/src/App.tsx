@@ -33,6 +33,9 @@ const ForgotPasswordPage = lazyPage(
   () => import("./pages/ForgotPasswordPage"),
   "ForgotPasswordPage",
 );
+const TermsPage = lazyPage(() => import("./legal/TermsPage"), "TermsPage");
+const PrivacyPage = lazyPage(() => import("./legal/PrivacyPage"), "PrivacyPage");
+const SellerTermsPage = lazyPage(() => import("./legal/SellerTermsPage"), "SellerTermsPage");
 const LoginPage = lazyPage(() => import("./pages/LoginPage"), "LoginPage");
 const RegisterPage = lazyPage(() => import("./pages/RegisterPage"), "RegisterPage");
 const ResetPasswordPage = lazyPage(() => import("./pages/ResetPasswordPage"), "ResetPasswordPage");
@@ -133,6 +136,9 @@ function pages(): RouteObject[] {
         { path: "/creations/:id", element: <CreationPage /> },
         { path: "/saved", element: <SavedPage /> },
         { path: "/about", element: <AboutPage /> },
+        { path: "/terms", element: <TermsPage /> },
+        { path: "/privacy", element: <PrivacyPage /> },
+        { path: "/seller-terms", element: <SellerTermsPage /> },
         { path: "/for-businesses", element: <ForBusinessesPage /> },
         { path: "/account", element: <AccountPage /> },
         { path: "/invite/:token", element: <InvitePage /> },

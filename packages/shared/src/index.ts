@@ -9,6 +9,7 @@ export * from "./imports.js";
 export * from "./inquiries.js";
 export * from "./invitations.js";
 export * from "./kenya.js";
+export * from "./legal.js";
 export * from "./review.js";
 export * from "./whatsapp.js";
 export * from "./phone.js";

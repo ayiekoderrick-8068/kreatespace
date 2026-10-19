@@ -112,6 +112,8 @@ export function staticMetaFor(pathname: string, search: string): PageMeta | null
     };
   }
   if (pathname.startsWith("/creations/") || pathname.startsWith("/businesses/")) return null;
+  // The legal documents set their own metadata (they stay unlisted while they are drafts).
+  if (["/terms", "/privacy", "/seller-terms"].includes(pathname)) return null;
   // Anything else is a page that does not exist.
   return { title: "Page not found", noindex: true };
 }
