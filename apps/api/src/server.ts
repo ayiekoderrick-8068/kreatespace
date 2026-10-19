@@ -3,6 +3,7 @@ import { createSupabaseTokenVerifier } from "./auth/token-verifier.js";
 import { createPrismaUserStore } from "./auth/user-store.js";
 import { loadEnv } from "./config/env.js";
 import { getPrisma } from "./lib/prisma.js";
+import { createSupabaseMediaStorage } from "./storage/media-storage.js";
 
 const env = loadEnv();
 
@@ -16,6 +17,17 @@ if (env.SUPABASE_URL && env.DATABASE_URL) {
     users: createPrismaUserStore(getPrisma(env.DATABASE_URL)),
   };
   deps.prisma = getPrisma(env.DATABASE_URL);
+  if (env.SUPABASE_SERVICE_ROLE_KEY) {
+    const storage = createSupabaseMediaStorage({
+      supabaseUrl: env.SUPABASE_URL,
+      serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      bucket: env.SUPABASE_STORAGE_BUCKET,
+    });
+    await storage.ensureBucket();
+    deps.storage = storage;
+  } else {
+    console.warn("SUPABASE_SERVICE_ROLE_KEY not set — image uploads are disabled");
+  }
   deps.webUrl = env.WEB_URL;
 } else {
   console.warn("SUPABASE_URL or DATABASE_URL not set — authenticated routes are disabled");

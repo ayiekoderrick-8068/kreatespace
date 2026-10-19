@@ -7,13 +7,17 @@ import type { Env } from "./config/env.js";
 import type { PrismaClient } from "./generated/prisma/client.js";
 import { HttpError } from "./http/errors.js";
 import { createRateLimiter } from "./http/rate-limit.js";
+import { categoryRoutes, sellerBusinessRoutes } from "./businesses/routes.js";
 import { adminInvitationRoutes, inviteeInvitationRoutes } from "./invitations/routes.js";
+import type { MediaStorage } from "./storage/media-storage.js";
 
 export interface AppDeps {
   /** Authentication dependencies; when absent, protected routes respond with 503. */
   auth?: AuthDeps;
   /** Database client; when absent, data routes respond with 503. */
   prisma?: PrismaClient;
+  /** Private image storage; when absent, uploads are unavailable and image URLs are omitted. */
+  storage?: MediaStorage;
   /** Public base URL of the web app, used to build invitation links. */
   webUrl?: string;
   /** Set to false in tests to switch off per-IP rate limiting. */
@@ -58,10 +62,21 @@ export function createApp(env: Pick<Env, "CORS_ORIGIN">, deps: AppDeps = {}): Ex
       webUrl: deps.webUrl ?? "http://localhost:5173",
       limiter: createRateLimiter({ windowMs: 15 * 60_000, max: 30 }, deps.rateLimiting !== false),
     };
+    const businessDeps = {
+      prisma: deps.prisma,
+      authenticate,
+      storage: deps.storage,
+      writeLimiter: createRateLimiter(
+        { windowMs: 15 * 60_000, max: 100 },
+        deps.rateLimiting !== false,
+      ),
+    };
     app.use("/api/admin/invitations", adminInvitationRoutes(routeDeps));
     app.use("/api/invitations", inviteeInvitationRoutes(routeDeps));
+    app.use("/api/categories", categoryRoutes(businessDeps));
+    app.use("/api/businesses", sellerBusinessRoutes(businessDeps));
   } else {
-    app.use(["/api/admin", "/api/invitations"], unavailable);
+    app.use(["/api/admin", "/api/invitations", "/api/categories", "/api/businesses"], unavailable);
   }
 
   app.use((_req, res) => {

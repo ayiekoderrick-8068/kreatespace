@@ -7,6 +7,9 @@ const envSchema = z.object({
   /** Public URL of the web app (used in invitation links). */
   WEB_URL: z.url().default("http://localhost:5173"),
   SUPABASE_URL: z.url().optional(),
+  /** Server-only key used for Storage. Never expose it to the browser. */
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_STORAGE_BUCKET: z.string().min(1).default("business-media"),
   /** Only for projects still using the legacy shared JWT secret; omit for asymmetric signing keys. */
   SUPABASE_JWT_SECRET: z.string().min(1).optional(),
   CORS_ORIGIN: z

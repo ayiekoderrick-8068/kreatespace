@@ -1,0 +1,69 @@
+import { createClient } from "@supabase/supabase-js";
+import { IMAGE_CONTENT_TYPES, IMAGE_MAX_BYTES } from "@kreatespace/shared";
+
+/** Private object storage for business images. Unpublished images are never publicly readable. */
+export interface MediaStorage {
+  /** A short-lived, single-use URL the browser can upload one object to. */
+  createUploadTarget(path: string): Promise<{ uploadUrl: string; token: string }>;
+  /** Short-lived read URLs for the given paths. Missing objects are omitted from the map. */
+  createReadUrls(paths: string[]): Promise<Map<string, string>>;
+  /** Names of objects stored under a folder prefix (without the prefix). */
+  listFolder(prefix: string): Promise<string[]>;
+}
+
+export const READ_URL_TTL_SECONDS = 60 * 60;
+
+export interface SupabaseStorageConfig {
+  supabaseUrl: string;
+  serviceRoleKey: string;
+  bucket: string;
+}
+
+/**
+ * Supabase Storage implementation. Uses the service-role key, so it must only ever run on the
+ * server. The bucket is private; browsers upload through signed URLs and read via signed URLs.
+ */
+export function createSupabaseMediaStorage(config: SupabaseStorageConfig): MediaStorage & {
+  ensureBucket(): Promise<void>;
+} {
+  const client = createClient(config.supabaseUrl, config.serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const bucket = () => client.storage.from(config.bucket);
+
+  return {
+    async ensureBucket() {
+      const { data } = await client.storage.getBucket(config.bucket);
+      if (data) return;
+      const { error } = await client.storage.createBucket(config.bucket, {
+        public: false,
+        fileSizeLimit: IMAGE_MAX_BYTES,
+        allowedMimeTypes: [...IMAGE_CONTENT_TYPES],
+      });
+      if (error) throw new Error(`Could not create storage bucket: ${error.message}`);
+    },
+
+    async createUploadTarget(path) {
+      const { data, error } = await bucket().createSignedUploadUrl(path);
+      if (error || !data) throw new Error(`Could not create upload URL: ${error?.message}`);
+      return { uploadUrl: data.signedUrl, token: data.token };
+    },
+
+    async createReadUrls(paths) {
+      const urls = new Map<string, string>();
+      if (paths.length === 0) return urls;
+      const { data, error } = await bucket().createSignedUrls(paths, READ_URL_TTL_SECONDS);
+      if (error) throw new Error(`Could not create image URLs: ${error.message}`);
+      for (const item of data ?? []) {
+        if (item.path && item.signedUrl) urls.set(item.path, item.signedUrl);
+      }
+      return urls;
+    },
+
+    async listFolder(prefix) {
+      const { data, error } = await bucket().list(prefix.replace(/\/+$/, ""), { limit: 1000 });
+      if (error) throw new Error(`Could not list images: ${error.message}`);
+      return (data ?? []).map((item) => item.name);
+    },
+  };
+}

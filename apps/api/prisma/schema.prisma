@@ -32,9 +32,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  invitationsSent     Invitation[] @relation("InvitationSender")
-  invitationsAccepted Invitation[] @relation("InvitationAcceptor")
+  invitationsSent     Invitation[]     @relation("InvitationSender")
+  invitationsAccepted Invitation[]     @relation("InvitationAcceptor")
   auditLogs           AuditLog[]
+  business            Business?
+  reviewDecisions     ReviewDecision[] @relation("ReviewDecisionAdmin")
 
   @@map("users")
 }
@@ -78,4 +80,123 @@ model Invitation {
   @@index([email])
   @@index([status, expiresAt])
   @@map("invitations")
+}
+
+enum BusinessStatus {
+  DRAFT
+  PENDING
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum RevisionStatus {
+  DRAFT
+  PENDING
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+}
+
+enum ReviewAction {
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+  SUSPENDED
+  REINSTATED
+}
+
+model Category {
+  id        String  @id @default(uuid()) @db.Uuid
+  slug      String  @unique
+  name      String
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  revisions BusinessRevision[]
+
+  @@map("categories")
+}
+
+/// A seller's business. Public content lives in revisions; `publishedRevisionId` is what visitors see.
+model Business {
+  id                  String         @id @default(uuid()) @db.Uuid
+  ownerId             String         @unique @db.Uuid
+  slug                String         @unique
+  status              BusinessStatus @default(DRAFT)
+  publishedRevisionId String?        @unique @db.Uuid
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  owner             User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  revisions         BusinessRevision[] @relation("BusinessRevisions")
+  publishedRevision BusinessRevision?  @relation("PublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
+  decisions         ReviewDecision[]
+
+  @@index([status])
+  @@map("businesses")
+}
+
+/// A versioned snapshot of a business profile. Edits after approval create a new revision.
+model BusinessRevision {
+  id                  String         @id @default(uuid()) @db.Uuid
+  businessId          String         @db.Uuid
+  version             Int
+  status              RevisionStatus @default(DRAFT)
+  businessName        String
+  ownerName           String
+  description         String
+  categoryId          String         @db.Uuid
+  county              String
+  city                String
+  websiteUrl          String?
+  whatsappNumber      String
+  logoPath            String?
+  termsAcceptedAt     DateTime?
+  contentAuthorizedAt DateTime?
+  submittedAt         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  business     Business         @relation("BusinessRevisions", fields: [businessId], references: [id], onDelete: Cascade)
+  publishedFor Business?        @relation("PublishedRevision")
+  category     Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  images       BusinessImage[]
+  decisions    ReviewDecision[]
+
+  @@unique([businessId, version])
+  @@index([status])
+  @@map("business_revisions")
+}
+
+model BusinessImage {
+  id         String   @id @default(uuid()) @db.Uuid
+  revisionId String   @db.Uuid
+  path       String
+  position   Int
+  createdAt  DateTime @default(now())
+
+  revision BusinessRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
+
+  @@unique([revisionId, position])
+  @@map("business_images")
+}
+
+/// Every moderation decision, with who made it and why.
+model ReviewDecision {
+  id         String       @id @default(uuid()) @db.Uuid
+  businessId String       @db.Uuid
+  revisionId String?      @db.Uuid
+  adminId    String       @db.Uuid
+  action     ReviewAction
+  reason     String?
+  createdAt  DateTime     @default(now())
+
+  business Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  revision BusinessRevision? @relation(fields: [revisionId], references: [id], onDelete: SetNull)
+  admin    User              @relation("ReviewDecisionAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, createdAt])
+  @@map("review_decisions")
 }
