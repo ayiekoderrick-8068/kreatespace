@@ -1,0 +1,19 @@
+{
+  "name": "@kreatespace/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "jose": "^6.2.12",
+    "pg": "^8.23.1",
+    "tsx": "^4.23.15"
+  }
+}
