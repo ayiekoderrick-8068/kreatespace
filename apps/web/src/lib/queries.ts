@@ -1,8 +1,16 @@
-import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError, apiRequest } from "./api";
-import type { Category, CurrentUser, OwnBusiness } from "./types";
+import type {
+  Category,
+  CreationDetail,
+  CreationPage,
+  CurrentUser,
+  FilterOptions,
+  HomeData,
+  OwnBusiness,
+} from "./types";
 
 /** API helpers bound to the signed-in user's access token. */
 export function useApi() {
@@ -27,6 +35,14 @@ export const queryKeys = {
   adminBusinesses: (params: object) => ["admin", "businesses", params] as const,
   adminBusiness: (id: string) => ["admin", "business", id] as const,
   publicBusiness: (slug: string) => ["public", "business", slug] as const,
+  feed: (filters: DiscoveryFilters) => ["public", "creations", filters] as const,
+  creation: (id: string) => ["public", "creation", id] as const,
+  related: (id: string) => ["public", "related", id] as const,
+  home: ["public", "home"] as const,
+  filterOptions: ["public", "filters"] as const,
+  cities: (county: string) => ["public", "cities", county] as const,
+  savedIds: (userId: string | undefined) => ["saved", "ids", userId] as const,
+  savedList: ["saved", "list"] as const,
 };
 
 export function useCurrentUser() {
@@ -63,5 +79,84 @@ export function useOwnBusiness(options?: Partial<UseQueryOptions<OwnBusiness | n
       }
     },
     ...options,
+  });
+}
+
+/** Discovery filters as they appear in the page address, so results can be shared. */
+export interface DiscoveryFilters {
+  q?: string;
+  category?: string;
+  occasion?: string;
+  county?: string;
+  city?: string;
+}
+
+function toQueryString(params: Record<string, string | number | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  }
+  return search.toString();
+}
+
+/** Newest-first feed, loaded one page at a time. */
+export function useCreationFeed(filters: DiscoveryFilters) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.feed(filters),
+    queryFn: ({ pageParam }) =>
+      apiRequest<CreationPage>(
+        `/api/public/creations?${toQueryString({ ...filters, page: pageParam })}`,
+      ),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
+  });
+}
+
+export function useCreation(id: string) {
+  return useQuery({
+    queryKey: queryKeys.creation(id),
+    queryFn: async () =>
+      (await apiRequest<{ creation: CreationDetail }>(`/api/public/creations/${id}`)).creation,
+    staleTime: 60_000,
+  });
+}
+
+export function useRelatedCreations(id: string, enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.related(id),
+    queryFn: async () =>
+      (await apiRequest<CreationPage>(`/api/public/creations/${id}/related`)).items,
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+export function useHome() {
+  return useQuery({
+    queryKey: queryKeys.home,
+    queryFn: () => apiRequest<HomeData>("/api/public/home"),
+    staleTime: 30_000,
+  });
+}
+
+export function useFilterOptions() {
+  return useQuery({
+    queryKey: queryKeys.filterOptions,
+    queryFn: () => apiRequest<FilterOptions>("/api/public/filters"),
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useCities(county: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.cities(county ?? ""),
+    queryFn: async () =>
+      (
+        await apiRequest<{ cities: string[] }>(
+          `/api/public/cities?county=${encodeURIComponent(county!)}`,
+        )
+      ).cities,
+    enabled: Boolean(county),
+    staleTime: 5 * 60_000,
   });
 }

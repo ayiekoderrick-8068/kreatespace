@@ -101,10 +101,74 @@ export interface AdminBusinessDetail {
   })[];
 }
 
+export interface ImageView {
+  url: string | null;
+  srcSet: string | null;
+  width: number;
+  height: number;
+}
+
+export interface CreationCard {
+  id: string;
+  title: string;
+  image: ImageView | null;
+  category: { slug: string; name: string };
+  occasion: { slug: string; name: string } | null;
+  business: { slug: string; name: string; county: string; city: string };
+  publishedAt: string | null;
+}
+
+export interface CreationPage {
+  items: CreationCard[];
+  page: number;
+  pageSize: number;
+  hasMore: boolean;
+}
+
+export interface CreationDetail {
+  id: string;
+  title: string;
+  description: string;
+  category: { slug: string; name: string };
+  occasion: { slug: string; name: string } | null;
+  images: ImageView[];
+  publishedAt: string | null;
+  business: {
+    slug: string;
+    name: string;
+    county: string;
+    city: string;
+    logoUrl: string | null;
+    websiteUrl: string | null;
+    whatsappNumber: string;
+  };
+}
+
+export interface HomeData {
+  categories: { slug: string; name: string; count: number; cover: ImageView | null }[];
+  recent: CreationCard[];
+  businesses: {
+    slug: string;
+    name: string;
+    county: string;
+    city: string;
+    categoryName: string;
+    logoUrl: string | null;
+    creationCount: number;
+    previews: ImageView[];
+  }[];
+}
+
+export interface FilterOptions {
+  categories: { slug: string; name: string }[];
+  occasions: { slug: string; name: string }[];
+}
+
 export interface PublicBusiness {
   slug: string;
   businessName: string;
   description: string;
+  categories: { slug: string; name: string }[];
   category: { slug: string; name: string };
   county: string;
   city: string;
@@ -112,4 +176,6 @@ export interface PublicBusiness {
   whatsappNumber: string;
   logoUrl: string | null;
   images: { url: string }[];
+  creations: CreationCard[];
+  hasMoreCreations: boolean;
 }
