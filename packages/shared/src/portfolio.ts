@@ -18,7 +18,13 @@ export const creationDetailsSchema = z.object({
     .max(1000, "Description must be 1,000 characters or fewer"),
   categoryId: z.uuid("Choose a category"),
   /** Optional: not every creation belongs to an occasion. */
-  occasionId: z.uuid("Choose an occasion").nullable().optional(),
+  occasionId: z
+    .string()
+    .nullable()
+    .optional()
+    // An unset select sends an empty string; that means "no occasion".
+    .transform((value) => (value ? value : null))
+    .pipe(z.uuid("Choose an occasion").nullable()),
 });
 
 /** Any subset of the details while drafting. */

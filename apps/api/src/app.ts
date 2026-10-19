@@ -12,7 +12,7 @@ import { categoryRoutes, sellerBusinessRoutes } from "./businesses/routes.js";
 import { adminInvitationRoutes, inviteeInvitationRoutes } from "./invitations/routes.js";
 import { discoveryRoutes } from "./discovery/routes.js";
 import { adminCreationRoutes } from "./portfolio/admin-routes.js";
-import { sellerCreationRoutes } from "./portfolio/routes.js";
+import { occasionRoutes, sellerCreationRoutes } from "./portfolio/routes.js";
 import { savedRoutes } from "./discovery/saved-routes.js";
 import { inquiryEventRoutes } from "./inquiries/routes.js";
 import { adminPackageRoutes, sellerPackageRoutes } from "./packages/routes.js";
@@ -101,6 +101,7 @@ export function createApp(
     app.use("/api/public", publicRoutes(businessDeps));
     app.use("/api/public", discoveryRoutes(businessDeps));
     app.use("/api/me/saved", savedRoutes(businessDeps));
+    app.use("/api/occasions", occasionRoutes(businessDeps));
     app.use("/api/creations", sellerCreationRoutes(businessDeps));
     app.use("/api/packages", sellerPackageRoutes(businessDeps));
     app.use("/api/admin/packages", adminPackageRoutes(businessDeps));
@@ -115,6 +116,7 @@ export function createApp(
         "/api/public",
         "/api/me/saved",
         "/api/creations",
+        "/api/occasions",
         "/api/packages",
       ],
       unavailable,

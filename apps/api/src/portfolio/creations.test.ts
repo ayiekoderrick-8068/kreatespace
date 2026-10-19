@@ -36,6 +36,18 @@ describe.skipIf(!hasDatabase)("seller creation management", () => {
       .set(bearer(owner.seller))
       .send(await details(overrides));
 
+  describe("occasions", () => {
+    it("lists the occasions with ids, publicly", async () => {
+      const res = await request(app).get("/api/occasions");
+      expect(res.status).toBe(200);
+      const slugs = res.body.occasions.map((o: { slug: string }) => o.slug);
+      expect(slugs).toEqual(
+        expect.arrayContaining(["birthday", "wedding", "bridal", "graduation"]),
+      );
+      expect(res.body.occasions[0].id).toMatch(/^[0-9a-f-]{36}$/);
+    });
+  });
+
   describe("access", () => {
     it("requires sign-in", async () => {
       expect((await request(app).get("/api/creations")).status).toBe(401);

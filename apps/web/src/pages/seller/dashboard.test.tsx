@@ -139,7 +139,7 @@ describe("seller dashboard", () => {
       "href",
       "/seller/edit",
     );
-    expect(screen.getByText(/coming soon/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your portfolio" })).toBeInTheDocument();
   });
 
   it("shows no-website sellers honestly", async () => {

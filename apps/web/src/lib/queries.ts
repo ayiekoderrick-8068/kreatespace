@@ -28,7 +28,8 @@ export function useApi() {
         apiRequest<T>(path, { method: "POST", body: body ?? {}, token }),
       patch: <T>(path: string, body: unknown) =>
         apiRequest<T>(path, { method: "PATCH", body, token }),
-      put: <T>(path: string) => apiRequest<T>(path, { method: "PUT", body: {}, token }),
+      put: <T>(path: string, body?: unknown) =>
+        apiRequest<T>(path, { method: "PUT", body: body ?? {}, token }),
       delete: <T>(path: string) => apiRequest<T>(path, { method: "DELETE", token }),
     }),
     [token],

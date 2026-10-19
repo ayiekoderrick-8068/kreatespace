@@ -178,4 +178,149 @@ export interface PublicBusiness {
   images: { url: string }[];
   creations: CreationCard[];
   hasMoreCreations: boolean;
+  packages: PublicPackage[];
+}
+
+// --- seller portfolio -------------------------------------------------------------------------
+
+export type CreationStatus =
+  "DRAFT" | "PENDING" | "CHANGES_REQUESTED" | "APPROVED" | "REJECTED" | "SUSPENDED" | "ARCHIVED";
+
+export interface Usage {
+  used: number;
+  limit: number;
+  remaining: number;
+  byStatus: Partial<Record<CreationStatus, number>>;
+}
+
+export interface CreationSummary {
+  id: string;
+  status: CreationStatus;
+  title: string;
+  category: { slug: string; name: string };
+  revisionStatus: string;
+  hasPublishedVersion: boolean;
+  imageCount: number;
+  cover: { url: string | null; width: number; height: number } | null;
+  updatedAt: string;
+  latestFeedback: { action: string; reason: string | null } | null;
+}
+
+export interface SellerImage {
+  id: string;
+  position: number;
+  width: number;
+  height: number;
+  url: string | null;
+}
+
+export interface SellerRevision {
+  id: string;
+  version: number;
+  status: RevisionStatus;
+  title: string;
+  description: string;
+  category: Category;
+  occasion: Category | null;
+  submittedAt: string | null;
+  images: SellerImage[];
+}
+
+export interface OwnCreation {
+  creation: {
+    id: string;
+    status: CreationStatus;
+    createdAt: string;
+    updatedAt: string;
+    editable: boolean;
+    canStartRevision: boolean;
+  };
+  revision: SellerRevision;
+  publishedRevision: SellerRevision | null;
+  decisions: DecisionView[];
+}
+
+export interface OccasionOption {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+export interface AdminCreationListItem {
+  id: string;
+  status: CreationStatus;
+  title: string;
+  categoryName: string;
+  businessId: string;
+  businessName: string;
+  businessSlug: string;
+  hasPendingSubmission: boolean;
+  pendingSubmittedAt: string | null;
+  updatedAt: string;
+}
+
+export interface AdminCreationDetail {
+  creation: { id: string; status: CreationStatus; createdAt: string; publishedAt: string | null };
+  business: { id: string; slug: string; name: string; status: string };
+  reviewRevision: SellerRevision;
+  publishedRevision: SellerRevision | null;
+  revisions: { id: string; version: number; status: RevisionStatus; submittedAt: string | null }[];
+  decisions: (DecisionView & { admin: { id: string; email: string; fullName: string | null } })[];
+}
+
+// --- service packages -------------------------------------------------------------------------
+
+export interface PackageView {
+  name: string;
+  description: string;
+  includes: string[];
+  startingPriceKes: number | null;
+  image: ImageView | null;
+}
+
+export interface OwnPackage {
+  id: string;
+  status: "ACTIVE" | "ARCHIVED" | "SUSPENDED";
+  reviewState: RevisionStatus;
+  editable: boolean;
+  hasPublishedVersion: boolean;
+  draft: PackageView;
+  published: PackageView | null;
+  latestFeedback: { action: string; reason: string | null } | null;
+  updatedAt: string;
+}
+
+export interface AdminPackageListItem {
+  id: string;
+  name: string;
+  status: string;
+  reviewState: RevisionStatus;
+  businessId: string;
+  businessName: string;
+  submittedAt: string | null;
+  updatedAt: string;
+}
+
+export interface AdminPackageDetail {
+  package: {
+    id: string;
+    status: string;
+    reviewState: RevisionStatus;
+    submittedAt: string | null;
+    publishedAt: string | null;
+  };
+  business: { id: string; slug: string; name: string; status: string };
+  draft: PackageView;
+  published: PackageView | null;
+  decisions: {
+    id: string;
+    action: string;
+    reason: string | null;
+    createdAt: string;
+    admin: { id: string; email: string; fullName: string | null };
+  }[];
+}
+
+export interface PublicPackage extends PackageView {
+  id: string;
 }

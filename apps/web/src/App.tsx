@@ -35,6 +35,14 @@ const SellerDashboardPage = lazyPage(
   () => import("./pages/seller/SellerDashboardPage"),
   "SellerDashboardPage",
 );
+const CreationNewPage = lazyPage(
+  () => import("./pages/seller/CreationEditorPage"),
+  "CreationNewPage",
+);
+const CreationEditorPage = lazyPage(
+  () => import("./pages/seller/CreationEditorPage"),
+  "CreationEditorPage",
+);
 const SellerEditPage = lazyPage(() => import("./pages/seller/SellerEditPage"), "SellerEditPage");
 const SellerRegisterPage = lazyPage(
   () => import("./pages/seller/SellerRegisterPage"),
@@ -62,6 +70,22 @@ export const routes: RouteObject[] = [
         element: (
           <RequireRole roles={["SELLER"]}>
             <SellerDashboardPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: "/seller/creations/new",
+        element: (
+          <RequireRole roles={["SELLER"]}>
+            <CreationNewPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: "/seller/creations/:id",
+        element: (
+          <RequireRole roles={["SELLER"]}>
+            <CreationEditorPage />
           </RequireRole>
         ),
       },

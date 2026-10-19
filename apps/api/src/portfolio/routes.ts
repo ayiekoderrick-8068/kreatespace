@@ -126,3 +126,19 @@ export function sellerCreationRoutes(deps: PortfolioDeps): Router {
 
   return router;
 }
+
+/** Public list of occasions (with ids, so sellers can tag creations), mounted at /api/occasions. */
+export function occasionRoutes({ prisma }: { prisma: PrismaClient }): Router {
+  const router = Router();
+  router.get("/", async (_req, res) => {
+    res.set("Cache-Control", "public, max-age=300");
+    res.json({
+      occasions: await prisma.occasion.findMany({
+        where: { active: true },
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: { id: true, slug: true, name: true },
+      }),
+    });
+  });
+  return router;
+}

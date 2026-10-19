@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { FormMessage } from "../../components/forms";
+import { PortfolioPanel } from "../../components/PortfolioPanel";
 import { StatusBadge } from "../../components/StatusBadge";
 import { useOwnBusiness } from "../../lib/queries";
 import type { DecisionView, OwnBusiness, RevisionView } from "../../lib/types";
@@ -140,12 +141,7 @@ function ApprovedView({ data }: { data: OwnBusiness }) {
         </Card>
       ) : null}
 
-      <Card title="Creations">
-        <p className="text-sm text-ink-muted">
-          Managing your creations (cakes, outfits, photo shoots and more) is coming soon. For now,
-          your approved profile is live.
-        </p>
-      </Card>
+      <PortfolioPanel />
     </>
   );
 }

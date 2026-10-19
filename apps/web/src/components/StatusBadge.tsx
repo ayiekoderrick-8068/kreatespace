@@ -1,4 +1,11 @@
-import type { BusinessStatus, InvitationStatus, RevisionStatus } from "@kreatespace/shared";
+import type {
+  BusinessStatus,
+  CreationStatus,
+  InvitationStatus,
+  RevisionStatus,
+} from "@kreatespace/shared";
+
+type AnyStatus = BusinessStatus | RevisionStatus | InvitationStatus | CreationStatus | "ACTIVE";
 
 const LABELS: Record<string, string> = {
   DRAFT: "Draft",
@@ -10,6 +17,8 @@ const LABELS: Record<string, string> = {
   ACCEPTED: "Accepted",
   REVOKED: "Revoked",
   EXPIRED: "Expired",
+  ARCHIVED: "Archived",
+  ACTIVE: "Active",
 };
 
 const STYLES: Record<string, string> = {
@@ -22,9 +31,11 @@ const STYLES: Record<string, string> = {
   SUSPENDED: "bg-red-100 text-red-900",
   REVOKED: "bg-red-100 text-red-900",
   EXPIRED: "bg-cream-dark text-ink-muted",
+  ARCHIVED: "bg-cream-dark text-ink-muted",
+  ACTIVE: "bg-green-100 text-green-900",
 };
 
-export function statusLabel(status: BusinessStatus | RevisionStatus | InvitationStatus): string {
+export function statusLabel(status: AnyStatus): string {
   return LABELS[status] ?? status;
 }
 
@@ -32,7 +43,7 @@ export function StatusBadge({
   status,
   kind = "review",
 }: {
-  status: BusinessStatus | RevisionStatus | InvitationStatus;
+  status: AnyStatus;
   /** Invitations use "Pending"; review states use "Awaiting review". */
   kind?: "review" | "invitation";
 }) {
