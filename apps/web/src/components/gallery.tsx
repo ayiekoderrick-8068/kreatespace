@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { CreationCard, ImageView } from "../lib/types";
+import { SaveButton } from "./SaveButton";
 
 /** Keeps tall or wide photos from dominating the grid; the image is cropped to fit. */
 function boundedRatio(image: ImageView | null): string {
@@ -80,12 +81,9 @@ export function Photo({
 /** One creation in the grid: the photo leads, with just a title and who made it. */
 export function CreationTile({
   creation,
-  action,
   eager = false,
 }: {
   creation: CreationCard;
-  /** Optional control shown over the photo, such as the save button. */
-  action?: ReactNode;
   eager?: boolean;
 }) {
   return (
@@ -98,7 +96,9 @@ export function CreationTile({
         >
           <Photo image={creation.image} alt={creation.title} eager={eager} allowRetry={false} />
         </Link>
-        {action ? <div className="absolute right-2 top-2">{action}</div> : null}
+        <div className="absolute right-2 top-2">
+          <SaveButton creationId={creation.id} title={creation.title} />
+        </div>
       </div>
       <div className="px-1 pb-1 pt-2">
         <h3 className="line-clamp-2 font-sans text-sm font-medium leading-snug">
@@ -119,11 +119,9 @@ export function CreationTile({
 /** Pinterest-style columns: two on phones, more as the screen grows. */
 export function Masonry({
   items,
-  renderAction,
   eagerCount = 4,
 }: {
   items: CreationCard[];
-  renderAction?: (creation: CreationCard) => ReactNode;
   /** The first few images load immediately; the rest load as they approach the screen. */
   eagerCount?: number;
 }) {
@@ -131,11 +129,7 @@ export function Masonry({
     <ul className="columns-2 gap-3 sm:gap-4 md:columns-3 lg:columns-4 2xl:columns-5">
       {items.map((creation, index) => (
         <li key={creation.id} className="mb-4 break-inside-avoid">
-          <CreationTile
-            creation={creation}
-            action={renderAction?.(creation)}
-            eager={index < eagerCount}
-          />
+          <CreationTile creation={creation} eager={index < eagerCount} />
         </li>
       ))}
     </ul>

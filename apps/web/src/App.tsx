@@ -20,6 +20,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PublicBusinessPage } from "./pages/PublicBusinessPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { SavedPage } from "./pages/SavedPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SellerDashboardPage } from "./pages/seller/SellerDashboardPage";
 import { SellerEditPage } from "./pages/seller/SellerEditPage";
@@ -36,6 +37,7 @@ export const routes: RouteObject[] = [
       { path: "/", element: <HomePage /> },
       { path: "/explore", element: <ExplorePage /> },
       { path: "/creations/:id", element: <CreationPage /> },
+      { path: "/saved", element: <SavedPage /> },
       { path: "/about", element: <AboutPage /> },
       { path: "/for-businesses", element: <ForBusinessesPage /> },
       { path: "/account", element: <AccountPage /> },

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { FormMessage, SecondaryButton } from "../components/forms";
 import { GallerySkeleton, Masonry, Photo } from "../components/gallery";
+import { SaveButton } from "../components/SaveButton";
 import { ApiError } from "../lib/api";
 import { useCreation, useRelatedCreations } from "../lib/queries";
 
@@ -137,6 +138,9 @@ export function CreationPage() {
             ) : null}
           </p>
           <p className="mt-5 max-w-prose whitespace-pre-line text-ink-muted">{data.description}</p>
+          <div className="mt-5">
+            <SaveButton creationId={data.id} title={data.title} variant="button" />
+          </div>
 
           <section
             aria-label="About the business"

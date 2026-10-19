@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { PLATFORM_NAME } from "@kreatespace/shared";
 import { useAuth } from "../auth/AuthProvider";
 import { recallInvite } from "../lib/pending-invite";
-import { useCurrentUser } from "../lib/queries";
+import { forgetPendingSave, recallPendingSave } from "../lib/pending-save";
+import { queryKeys, useApi, useCurrentUser } from "../lib/queries";
 import { HeartIcon, HomeIcon, SearchIcon, UserIcon } from "./icons";
 
 const topLink = ({ isActive }: { isActive: boolean }) =>
@@ -47,7 +49,47 @@ function HeaderSearch() {
   );
 }
 
+/**
+ * Finishes a save the visitor started before logging in. Runs once after they sign in and
+ * tells them what happened.
+ */
+function usePendingSave() {
+  const { session } = useAuth();
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const running = useRef(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!session || running.current) return;
+    const pending = recallPendingSave();
+    if (!pending) return;
+    running.current = true;
+    api
+      .put(`/api/me/saved/${pending.creationId}`)
+      .then(() => setNotice(`Saved “${pending.title}” to your list.`))
+      .catch(() =>
+        setNotice(`We couldn’t save “${pending.title}”. Try the heart on its page again.`),
+      )
+      .finally(() => {
+        forgetPendingSave();
+        running.current = false;
+        void queryClient.invalidateQueries({ queryKey: ["saved"] });
+        void queryClient.invalidateQueries({ queryKey: queryKeys.savedList });
+      });
+  }, [session, api, queryClient]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 7000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  return { notice, dismiss: () => setNotice(null) };
+}
+
 export function Layout() {
+  const pendingSave = usePendingSave();
   const { user, signOut } = useAuth();
   const { data: profile } = useCurrentUser();
   const pendingInvite = user && profile?.role === "CUSTOMER" ? recallInvite() : null;
@@ -137,6 +179,21 @@ export function Layout() {
       </div>
 
       <Footer />
+
+      {pendingSave.notice ? (
+        <div
+          role="status"
+          className="fixed bottom-24 left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-md -translate-x-1/2 items-center gap-3 rounded-full bg-ink px-5 py-3 text-sm text-cream shadow-lg md:bottom-6"
+        >
+          <span className="flex-1">{pendingSave.notice}</span>
+          <Link to="/saved" onClick={pendingSave.dismiss} className="font-medium underline">
+            View saved
+          </Link>
+          <button type="button" onClick={pendingSave.dismiss} aria-label="Dismiss">
+            ✕
+          </button>
+        </div>
+      ) : null}
 
       <nav
         aria-label="Mobile"

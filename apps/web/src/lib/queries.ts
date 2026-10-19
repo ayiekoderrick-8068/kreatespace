@@ -1,4 +1,10 @@
-import { useInfiniteQuery, useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryOptions,
+} from "@tanstack/react-query";
 import { useMemo } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { ApiError, apiRequest } from "./api";
@@ -22,6 +28,8 @@ export function useApi() {
         apiRequest<T>(path, { method: "POST", body: body ?? {}, token }),
       patch: <T>(path: string, body: unknown) =>
         apiRequest<T>(path, { method: "PATCH", body, token }),
+      put: <T>(path: string) => apiRequest<T>(path, { method: "PUT", body: {}, token }),
+      delete: <T>(path: string) => apiRequest<T>(path, { method: "DELETE", token }),
     }),
     [token],
   );
@@ -158,5 +166,61 @@ export function useCities(county: string | undefined) {
       ).cities,
     enabled: Boolean(county),
     staleTime: 5 * 60_000,
+  });
+}
+
+/** Ids of the signed-in user's saved creations (empty when signed out). */
+export function useSavedIds() {
+  const { session } = useAuth();
+  const api = useApi();
+  return useQuery({
+    queryKey: queryKeys.savedIds(session?.user.id),
+    queryFn: async () => (await api.get<{ ids: string[] }>("/api/me/saved/ids")).ids,
+    enabled: Boolean(session),
+    staleTime: 60_000,
+  });
+}
+
+/** The signed-in user's saved creations, loaded a page at a time. */
+export function useSavedFeed(enabled: boolean) {
+  const api = useApi();
+  return useInfiniteQuery({
+    queryKey: queryKeys.savedList,
+    queryFn: ({ pageParam }) => api.get<CreationPage>(`/api/me/saved?page=${pageParam}`),
+    initialPageParam: 1,
+    getNextPageParam: (last) => (last.hasMore ? last.page + 1 : undefined),
+    enabled,
+  });
+}
+
+/** Saves or removes a creation, updating the heart immediately and rolling back on failure. */
+export function useToggleSave() {
+  const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const api = useApi();
+  const idsKey = queryKeys.savedIds(session?.user.id);
+
+  return useMutation({
+    mutationFn: ({ creationId, save }: { creationId: string; save: boolean }) =>
+      save ? api.put(`/api/me/saved/${creationId}`) : api.delete(`/api/me/saved/${creationId}`),
+    onMutate: async ({ creationId, save }) => {
+      await queryClient.cancelQueries({ queryKey: idsKey });
+      const previous = queryClient.getQueryData<string[]>(idsKey);
+      queryClient.setQueryData<string[]>(idsKey, (ids = []) =>
+        save
+          ? [creationId, ...ids.filter((id) => id !== creationId)]
+          : ids.filter((id) => id !== creationId),
+      );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(idsKey, context.previous);
+    },
+    onSettled: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: idsKey }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.savedList }),
+      ]);
+    },
   });
 }
