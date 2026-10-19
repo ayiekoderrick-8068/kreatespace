@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img" aria-label="Sample outfit (development fixture)">
+  <rect width="100%" height="100%" fill="#d9d2bf"/>
+  <circle cx="400" cy="360" r="160" fill="#4f5a3a" fill-opacity="0.18"/>
+  <text x="400" y="410" text-anchor="middle" font-family="Georgia, serif" font-size="44" fill="#4f5a3a">Sample outfit</text>
+  <text x="400" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" letter-spacing="3" fill="#4f5a3a" fill-opacity="0.8">DEVELOPMENT FIXTURE</text>
+</svg>

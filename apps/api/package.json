@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "admin:grant": "tsx src/scripts/grant-admin.ts",
+    "seed:dev": "tsx src/scripts/seed-dev.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",

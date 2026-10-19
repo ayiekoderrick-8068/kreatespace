@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="800" viewBox="0 0 1000 800" role="img" aria-label="Sample portrait (development fixture)">
+  <rect width="100%" height="100%" fill="#d4c6b6"/>
+  <circle cx="500" cy="360" r="200" fill="#4b3b2c" fill-opacity="0.18"/>
+  <text x="500" y="410" text-anchor="middle" font-family="Georgia, serif" font-size="44" fill="#4b3b2c">Sample portrait</text>
+  <text x="500" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" letter-spacing="3" fill="#4b3b2c" fill-opacity="0.8">DEVELOPMENT FIXTURE</text>
+</svg>
