@@ -264,3 +264,47 @@ export async function getCreation(
     },
   };
 }
+
+export const RELATED_LIMIT = 8;
+
+/**
+ * Other live creations a customer may like. A creation qualifies when it shares the category
+ * (strongest) or the occasion; sharing the county only nudges the ordering. No ML involved.
+ */
+export async function listRelated(
+  prisma: PrismaClient,
+  storage: MediaStorage | undefined,
+  id: string,
+  limit = RELATED_LIMIT,
+): Promise<CreationCard[]> {
+  const base = await prisma.creation.findFirst({
+    where: { id, ...visibleCreation },
+    select: {
+      publishedRevision: { select: { categoryId: true, occasionId: true } },
+      business: { select: { publishedRevision: { select: { county: true } } } },
+    },
+  });
+  const revision = base?.publishedRevision;
+  const county = base?.business.publishedRevision?.county;
+  if (!base || !revision || !county) throw notFound("Creation not found");
+
+  const rows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT t."id" FROM (
+      SELECT c."id", c."publishedAt",
+        (CASE WHEN cr."categoryId" = ${revision.categoryId}::uuid THEN 3 ELSE 0 END
+         + CASE WHEN ${revision.occasionId}::uuid IS NOT NULL
+                     AND cr."occasionId" = ${revision.occasionId}::uuid THEN 2 ELSE 0 END
+         + CASE WHEN br."county" = ${county} THEN 1 ELSE 0 END) AS score
+      ${visibleFromSql}
+      WHERE ${visibleWhereSql} AND c."id" <> ${id}::uuid
+    ) t
+    WHERE t.score >= 2
+    ORDER BY t.score DESC, t."publishedAt" DESC, t."id"
+    LIMIT ${limit}`;
+
+  return cardsInOrder(
+    prisma,
+    storage,
+    rows.map((row) => row.id),
+  );
+}
