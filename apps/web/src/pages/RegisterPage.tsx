@@ -1,11 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { registerSchema, type RegisterInput } from "@kreatespace/shared";
+import { LEGAL_VERSION, registerSchema, type RegisterInput } from "@kreatespace/shared";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
 import {
   AuthLayout,
+  CheckboxField,
   FormMessage,
   NotConfiguredNotice,
   PrimaryButton,
@@ -21,11 +22,14 @@ export function RegisterPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { acceptTerms: false },
+  });
 
   const onSubmit = handleSubmit(async ({ fullName, email, password }) => {
     setFormError(null);
-    const result = await signUp({ fullName, email, password });
+    const result = await signUp({ fullName, email, password, termsVersion: LEGAL_VERSION });
     if (result.error) {
       setFormError(result.error);
       return;
@@ -97,6 +101,33 @@ export function RegisterPage() {
           autoComplete="new-password"
           error={errors.confirmPassword?.message}
           {...register("confirmPassword")}
+        />
+        <CheckboxField
+          label={
+            <>
+              I have read and agree to the{" "}
+              <Link
+                to="/terms"
+                target="_blank"
+                rel="noopener"
+                className="text-terracotta underline"
+              >
+                Terms of Use
+              </Link>{" "}
+              and the{" "}
+              <Link
+                to="/privacy"
+                target="_blank"
+                rel="noopener"
+                className="text-terracotta underline"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </>
+          }
+          error={errors.acceptTerms?.message}
+          {...register("acceptTerms")}
         />
         <PrimaryButton type="submit" disabled={isSubmitting || !configured}>
           {isSubmitting ? "Creating account…" : "Create account"}

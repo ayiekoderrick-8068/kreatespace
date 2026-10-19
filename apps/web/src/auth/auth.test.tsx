@@ -1,5 +1,6 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { LEGAL_VERSION } from "@kreatespace/shared";
 import { createFakeAuth, fakeSession, renderApp, type FakeAuth } from "../test/renderWithProviders";
 import { mockApi, user } from "../test/mockApi";
 
@@ -58,13 +59,33 @@ describe("login", () => {
 });
 
 describe("registration", () => {
-  async function fillForm(user: ReturnType<typeof userEvent.setup>, confirm = "bakery2024") {
+  async function fillForm(
+    user: ReturnType<typeof userEvent.setup>,
+    confirm = "bakery2024",
+    accept = true,
+  ) {
     await user.type(await screen.findByLabelText("Full name"), "Maria Wanjiku");
     await user.type(screen.getByLabelText("Email"), "maria@example.com");
     await user.type(screen.getByLabelText("Password"), "bakery2024");
     await user.type(screen.getByLabelText("Confirm password"), confirm);
+    if (accept) await user.click(screen.getByLabelText(/agree to the/));
     await user.click(screen.getByRole("button", { name: "Create account" }));
   }
+
+  it("will not create an account until the legal documents are accepted, and links to them", async () => {
+    const user = userEvent.setup();
+    renderApp("/register", fake.client);
+    await fillForm(user, "bakery2024", false);
+    expect(
+      await screen.findByText("Please accept the Terms of Use and Privacy Policy to continue"),
+    ).toBeInTheDocument();
+    expect(fake.mocks.signUp).not.toHaveBeenCalled();
+    expect(screen.getByRole("link", { name: "Terms of Use" })).toHaveAttribute("href", "/terms");
+    expect(screen.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute(
+      "href",
+      "/privacy",
+    );
+  });
 
   it("rejects mismatched passwords", async () => {
     const user = userEvent.setup();
@@ -85,7 +106,12 @@ describe("registration", () => {
       email: "maria@example.com",
       password: "bakery2024",
       options: {
-        data: { full_name: "Maria Wanjiku" },
+        // The version of the documents accepted is recorded with the account.
+        data: {
+          full_name: "Maria Wanjiku",
+          terms_version: LEGAL_VERSION,
+          terms_accepted_at: expect.any(String),
+        },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     });

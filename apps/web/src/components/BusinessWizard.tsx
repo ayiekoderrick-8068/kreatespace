@@ -490,7 +490,29 @@ export function BusinessWizard({ mode, business, onSubmitted }: Props) {
 
           <div className="space-y-3">
             <CheckboxField
-              label="I agree to the KreateSpace seller terms."
+              label={
+                <>
+                  I have read and agree to the KreateSpace{" "}
+                  <a
+                    href="/seller-terms"
+                    target="_blank"
+                    rel="noopener"
+                    className="text-terracotta underline"
+                  >
+                    Seller Terms
+                  </a>{" "}
+                  and{" "}
+                  <a
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener"
+                    className="text-terracotta underline"
+                  >
+                    Privacy Policy
+                  </a>{" "}
+                  (each opens in a new tab, so your application is not lost).
+                </>
+              }
               checked={agreements.termsAccepted}
               error={agreementErrors.termsAccepted}
               onChange={(event) =>

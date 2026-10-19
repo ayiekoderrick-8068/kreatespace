@@ -58,7 +58,16 @@ describe("registerSchema", () => {
     email: "  Maria@Example.com ",
     password: "bakery2024",
     confirmPassword: "bakery2024",
+    acceptTerms: true,
   };
+
+  it("needs the Terms of Use and Privacy Policy to be accepted", () => {
+    for (const acceptTerms of [false, undefined, "true", 1]) {
+      const result = registerSchema.safeParse({ ...valid, acceptTerms });
+      expect(result.success, String(acceptTerms)).toBe(false);
+      expect(result.error?.issues[0]?.path).toEqual(["acceptTerms"]);
+    }
+  });
 
   it("accepts valid input and normalises the email", () => {
     const result = registerSchema.parse(valid);

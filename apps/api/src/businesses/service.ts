@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import {
   IMAGE_EXTENSIONS,
+  LEGAL_VERSION,
   businessSubmissionSchema,
   type BusinessDetails,
   type BusinessDraftInput,
@@ -213,6 +214,7 @@ export async function updateDraft(
     if (changes.logoPath !== undefined) data.logoPath = changes.logoPath;
     if (changes.termsAccepted !== undefined) {
       data.termsAcceptedAt = changes.termsAccepted ? (open.termsAcceptedAt ?? new Date()) : null;
+      data.termsVersion = changes.termsAccepted ? (open.termsVersion ?? LEGAL_VERSION) : null;
     }
     if (changes.contentAuthorization !== undefined) {
       data.contentAuthorizedAt = changes.contentAuthorization
@@ -277,6 +279,7 @@ export async function startRevision(
         whatsappNumber: published.whatsappNumber,
         logoPath: published.logoPath,
         termsAcceptedAt: published.termsAcceptedAt,
+        termsVersion: published.termsVersion,
         contentAuthorizedAt: published.contentAuthorizedAt,
         images: {
           create: published.images.map((image) => ({ path: image.path, position: image.position })),

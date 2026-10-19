@@ -207,7 +207,7 @@ describe("business registration form", () => {
     expect(await screen.findByText("You must accept the seller terms")).toBeInTheDocument();
     expect(api.find("POST", "/api/businesses/me/submit")).toHaveLength(0);
 
-    await u.click(screen.getByLabelText(/I agree to the KreateSpace seller terms/));
+    await u.click(screen.getByLabelText(/agree to the KreateSpace\s+Seller Terms/));
     await u.click(screen.getByLabelText(/I own, or have permission to share/));
     await u.click(screen.getByRole("button", { name: "Submit for review" }));
 

@@ -43,7 +43,13 @@ export interface AuthContextValue {
   /** True after following a password-recovery email link. */
   recovering: boolean;
   signIn(email: string, password: string): Promise<AuthResult>;
-  signUp(input: { email: string; password: string; fullName: string }): Promise<SignUpResult>;
+  signUp(input: {
+    email: string;
+    password: string;
+    fullName: string;
+    /** The version of the Terms and Privacy Policy the person agreed to, recorded with the account. */
+    termsVersion?: string;
+  }): Promise<SignUpResult>;
   signOut(): Promise<void>;
   requestPasswordReset(email: string): Promise<AuthResult>;
   updatePassword(password: string): Promise<AuthResult>;
@@ -167,13 +173,21 @@ export function AuthProvider({
         const { error } = await current.signInWithPassword({ email, password });
         return { error: authErrorMessage(error) };
       },
-      async signUp({ email, password, fullName }) {
+      async signUp({ email, password, fullName, termsVersion }) {
         const current = await ready();
         if (!current) return { error: NOT_CONFIGURED, needsEmailVerification: false };
         const { data, error } = await current.signUp({
           email,
           password,
-          options: { data: { full_name: fullName }, emailRedirectTo: `${origin}/login` },
+          options: {
+            data: {
+              full_name: fullName,
+              ...(termsVersion
+                ? { terms_version: termsVersion, terms_accepted_at: new Date().toISOString() }
+                : {}),
+            },
+            emailRedirectTo: `${origin}/login`,
+          },
         });
         // An address that already has an account looks exactly like a new sign-up, so the form
         // can't be used to discover who is registered.

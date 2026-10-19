@@ -27,6 +27,10 @@ export const registerSchema = z
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string(),
+    /** The Terms of Use and Privacy Policy must be accepted to create an account. */
+    acceptTerms: z.boolean().refine((value) => value, {
+      message: "Please accept the Terms of Use and Privacy Policy to continue",
+    }),
   })
   .refine((value) => value.password === value.confirmPassword, {
     path: ["confirmPassword"],

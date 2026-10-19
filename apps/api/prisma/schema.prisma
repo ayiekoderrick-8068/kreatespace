@@ -168,6 +168,8 @@ model BusinessRevision {
   whatsappNumber      String
   logoPath            String?
   termsAcceptedAt     DateTime?
+  /// Which version of the seller terms was shown when they were accepted.
+  termsVersion        String?
   contentAuthorizedAt DateTime?
   submittedAt         DateTime?
   createdAt           DateTime       @default(now())
