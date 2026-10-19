@@ -1,11 +1,20 @@
+import { cardSelect, toCards, type CreationCard } from "../discovery/service.js";
+import { visibleCreation } from "../discovery/visibility.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import { notFound } from "../http/errors.js";
+import { resolveImages } from "../storage/image-urls.js";
 import type { MediaStorage } from "../storage/media-storage.js";
+
+/** How many creations the profile page loads up front; more are available in discovery. */
+export const PROFILE_CREATION_LIMIT = 24;
 
 export interface PublicBusinessView {
   slug: string;
   businessName: string;
   description: string;
+  /** Every category the business appears under: its own plus those of its live creations. */
+  categories: { slug: string; name: string }[];
+  /** @deprecated kept for existing clients: the business's own primary category. */
   category: { slug: string; name: string };
   county: string;
   city: string;
@@ -14,6 +23,9 @@ export interface PublicBusinessView {
   whatsappNumber: string;
   logoUrl: string | null;
   images: { url: string }[];
+  /** Live creations, newest first. */
+  creations: CreationCard[];
+  hasMoreCreations: boolean;
 }
 
 /**
@@ -28,6 +40,7 @@ export async function getPublicBusiness(
   const business = await prisma.business.findFirst({
     where: { slug, status: "APPROVED", publishedRevisionId: { not: null } },
     select: {
+      id: true,
       slug: true,
       publishedRevision: {
         select: {
@@ -47,25 +60,48 @@ export async function getPublicBusiness(
   const revision = business?.publishedRevision;
   if (!business || !revision) throw notFound("Business not found");
 
+  const [creationRows, creationCategories] = await Promise.all([
+    prisma.creation.findMany({
+      where: { businessId: business.id, ...visibleCreation },
+      orderBy: [{ publishedAt: "desc" }, { id: "asc" }],
+      take: PROFILE_CREATION_LIMIT + 1,
+      select: cardSelect,
+    }),
+    prisma.creationRevision.findMany({
+      where: { publishedFor: { is: { businessId: business.id, ...visibleCreation } } },
+      distinct: ["categoryId"],
+      select: { category: { select: { slug: true, name: true } } },
+    }),
+  ]);
+
   const paths = [
-    ...revision.images.map((i) => i.path),
-    ...(revision.logoPath ? [revision.logoPath] : []),
+    ...revision.images.map((i) => ({ path: i.path, width: 1, height: 1 })),
+    ...(revision.logoPath ? [{ path: revision.logoPath, width: 1, height: 1 }] : []),
   ];
-  const urls = storage ? await storage.createReadUrls(paths) : new Map<string, string>();
+  const [urls, creations] = await Promise.all([
+    resolveImages(storage, paths),
+    toCards(storage, creationRows.slice(0, PROFILE_CREATION_LIMIT)),
+  ]);
+
+  const categories = new Map([[revision.category.slug, revision.category]]);
+  for (const { category } of creationCategories) categories.set(category.slug, category);
 
   return {
     slug: business.slug,
     businessName: revision.businessName,
     description: revision.description,
+    categories: [...categories.values()],
     category: revision.category,
     county: revision.county,
     city: revision.city,
     websiteUrl: revision.websiteUrl,
     whatsappNumber: revision.whatsappNumber,
-    logoUrl: revision.logoPath ? (urls.get(revision.logoPath) ?? null) : null,
+    logoUrl: revision.logoPath ? (urls.get(revision.logoPath)?.url ?? null) : null,
     images: revision.images.flatMap((image) => {
-      const url = urls.get(image.path);
+      const url = urls.get(image.path)?.url;
       return url ? [{ url }] : [];
     }),
+    creations,
+    hasMoreCreations: creationRows.length > PROFILE_CREATION_LIMIT,
   };
 }
