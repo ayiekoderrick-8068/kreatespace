@@ -15,7 +15,9 @@ export type FetchFailure =
   | "TOO_LARGE"
   | "UNSUPPORTED_TYPE"
   | "HTTP_ERROR"
-  | "UNREACHABLE";
+  | "UNREACHABLE"
+  /** The website's robots.txt asks automated visitors to stay away. */
+  | "ROBOTS";
 
 export class FetchRefusedError extends Error {
   constructor(

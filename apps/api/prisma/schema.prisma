@@ -40,6 +40,9 @@ model User {
   savedCreations      SavedCreation[]
   creationDecisions   CreationReviewDecision[] @relation("CreationDecisionAdmin")
   packageDecisions    PackageReviewDecision[]  @relation("PackageDecisionAdmin")
+  importGrants        ImportAuthorization[]    @relation("ImportGrantedBy")
+  importJobsStarted   ImportJob[]              @relation("ImportJobRequester")
+  importDecisions     ImportItem[]             @relation("ImportItemDecider")
 
   @@map("users")
 }
@@ -133,14 +136,17 @@ model Business {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
-  owner             User               @relation(fields: [ownerId], references: [id], onDelete: Restrict)
-  revisions         BusinessRevision[] @relation("BusinessRevisions")
-  publishedRevision BusinessRevision?  @relation("PublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
-  decisions         ReviewDecision[]
-  creations         Creation[]
-  packages          ServicePackage[]
-  inquiryEvents     InquiryEvent[]
-  websiteRequests   WebsiteRequest[]
+  owner                User                  @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  revisions            BusinessRevision[]    @relation("BusinessRevisions")
+  publishedRevision    BusinessRevision?     @relation("PublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
+  decisions            ReviewDecision[]
+  creations            Creation[]
+  packages             ServicePackage[]
+  inquiryEvents        InquiryEvent[]
+  websiteRequests      WebsiteRequest[]
+  importAuthorizations ImportAuthorization[]
+  importJobs           ImportJob[]
+  importItems          ImportItem[]
 
   @@index([status])
   @@map("businesses")
@@ -248,6 +254,8 @@ model Creation {
   publishedRevision CreationRevision?        @relation("PublishedCreationRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
   saves             SavedCreation[]
   decisions         CreationReviewDecision[]
+  importedFrom      ImportItem[]             @relation("ImportedCreation")
+  importDuplicates  ImportItem[]             @relation("ImportDuplicateOf")
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([businessId])
@@ -439,4 +447,96 @@ model WebsiteRequest {
   @@index([businessId, createdAt])
   @@index([status, createdAt])
   @@map("website_requests")
+}
+
+enum ImportJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ImportItemStatus {
+  PENDING_REVIEW
+  DUPLICATE
+  ACCEPTED
+  REJECTED
+}
+
+/// An administrator's record that a business has authorised KreateSpace to read its own website.
+/// Granted only for the host of the business's own website; revoking stops further imports.
+model ImportAuthorization {
+  id          String    @id @default(uuid()) @db.Uuid
+  businessId  String    @db.Uuid
+  /// Lower-case host without `www.`; subdomains of it are covered.
+  domain      String
+  grantedById String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+
+  business  Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  grantedBy User        @relation("ImportGrantedBy", fields: [grantedById], references: [id], onDelete: Restrict)
+  jobs      ImportJob[]
+
+  @@index([businessId])
+  @@map("import_authorizations")
+}
+
+/// One crawl of an authorised website. Failures keep a short code only, never raw error text.
+model ImportJob {
+  id              String          @id @default(uuid()) @db.Uuid
+  businessId      String          @db.Uuid
+  authorizationId String          @db.Uuid
+  requestedById   String          @db.Uuid
+  startUrl        String
+  status          ImportJobStatus @default(QUEUED)
+  pagesFetched    Int             @default(0)
+  itemsFound      Int             @default(0)
+  duplicates      Int             @default(0)
+  skipped         Int             @default(0)
+  failureCode     String?
+  createdAt       DateTime        @default(now())
+  startedAt       DateTime?
+  finishedAt      DateTime?
+
+  business      Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  authorization ImportAuthorization @relation(fields: [authorizationId], references: [id], onDelete: Cascade)
+  requestedBy   User                @relation("ImportJobRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  items         ImportItem[]
+
+  @@index([businessId, createdAt])
+  @@index([status, createdAt])
+  @@map("import_jobs")
+}
+
+/// A page found by an import, held for review. Nothing here is public: accepting an item creates a
+/// *draft* creation that still goes through the normal seller and moderation steps.
+model ImportItem {
+  id                    String           @id @default(uuid()) @db.Uuid
+  jobId                 String           @db.Uuid
+  businessId            String           @db.Uuid
+  sourceUrl             String
+  title                 String
+  description           String
+  imageUrls             Json
+  contentHash           String
+  status                ImportItemStatus @default(PENDING_REVIEW)
+  duplicateReason       String?
+  duplicateOfCreationId String?          @db.Uuid
+  creationId            String?          @db.Uuid
+  decidedById           String?          @db.Uuid
+  decidedAt             DateTime?
+  createdAt             DateTime         @default(now())
+
+  job                 ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  business            Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  creation            Creation? @relation("ImportedCreation", fields: [creationId], references: [id], onDelete: SetNull)
+  duplicateOfCreation Creation? @relation("ImportDuplicateOf", fields: [duplicateOfCreationId], references: [id], onDelete: SetNull)
+  decidedBy           User?     @relation("ImportItemDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  /// A page is staged once per business, so running an import again never repeats work.
+  @@unique([businessId, sourceUrl])
+  @@index([jobId, status])
+  @@index([businessId, contentHash])
+  @@map("import_items")
 }

@@ -5,6 +5,11 @@ import { IMAGE_CONTENT_TYPES, IMAGE_MAX_BYTES } from "@kreatespace/shared";
 export interface MediaStorage {
   /** A short-lived, single-use URL the browser can upload one object to. */
   createUploadTarget(path: string): Promise<{ uploadUrl: string; token: string }>;
+  /**
+   * Stores bytes the server has already checked (for example an imported photo). It never
+   * overwrites: uploading to a path that exists is an error.
+   */
+  upload(path: string, bytes: Buffer, contentType: string): Promise<void>;
   /** Short-lived read URLs for the given paths. Missing objects are omitted from the map. */
   createReadUrls(paths: string[]): Promise<Map<string, string>>;
   /** Names of objects stored under a folder prefix (without the prefix). */
@@ -63,6 +68,11 @@ export function createSupabaseMediaStorage(config: SupabaseStorageConfig): Media
       const { data, error } = await bucket().createSignedUploadUrl(path);
       if (error || !data) throw new Error(`Could not create upload URL: ${error?.message}`);
       return { uploadUrl: data.signedUrl, token: data.token };
+    },
+
+    async upload(path, bytes, contentType) {
+      const { error } = await bucket().upload(path, bytes, { contentType, upsert: false });
+      if (error) throw new Error(`Could not store image: ${error.message}`);
     },
 
     async createReadUrls(paths) {

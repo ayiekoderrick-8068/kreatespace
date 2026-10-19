@@ -106,18 +106,42 @@ export async function createCreation(
 ): Promise<{ creationId: string }> {
   const { userId, details } = input;
   const business = await requireApprovedBusiness(prisma, userId);
+  return createDraftCreation(prisma, { businessId: business.id, actorId: userId, details });
+}
+
+/**
+ * Creates a draft creation for a business, enforcing the free-plan limit under a per-business
+ * lock. Used for seller-created drafts and for reviewed website imports; either way the result
+ * is only a draft that still goes through submission and moderation.
+ */
+export async function createDraftCreation(
+  prisma: PrismaClient,
+  input: {
+    businessId: string;
+    actorId: string;
+    details: CreationDetails;
+    /** Choose the id up front when files must be stored under it before the row exists. */
+    creationId?: string;
+    images?: { path: string; width: number; height: number }[];
+    auditAction?: string;
+    /** Runs inside the same transaction, for linking other records to the new creation. */
+    afterCreate?: (tx: Prisma.TransactionClient, creationId: string) => Promise<void>;
+  },
+): Promise<{ creationId: string }> {
+  const { businessId, actorId, details } = input;
   await requireActiveCategory(prisma, details.categoryId, details.occasionId);
 
   try {
     return await prisma.$transaction(async (tx) => {
       // One request at a time per business, so the count below cannot go stale.
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${"creations:" + business.id}))::text`;
-      const { used } = await getUsage(tx, business.id);
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${"creations:" + businessId}))::text`;
+      const { used } = await getUsage(tx, businessId);
       if (used >= MAX_ACTIVE_CREATIONS) throw limitReached();
 
       const creation = await tx.creation.create({
         data: {
-          businessId: business.id,
+          ...(input.creationId ? { id: input.creationId } : {}),
+          businessId,
           revisions: {
             create: {
               version: 1,
@@ -125,16 +149,20 @@ export async function createCreation(
               description: details.description,
               categoryId: details.categoryId,
               occasionId: details.occasionId ?? null,
+              images: {
+                create: (input.images ?? []).map((image, position) => ({ ...image, position })),
+              },
             },
           },
         },
       });
       await recordAudit(tx, {
-        actorId: userId,
-        action: "creation.created",
+        actorId,
+        action: input.auditAction ?? "creation.created",
         entityType: "Creation",
         entityId: creation.id,
       });
+      await input.afterCreate?.(tx, creation.id);
       return { creationId: creation.id };
     });
   } catch (error) {

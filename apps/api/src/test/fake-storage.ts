@@ -43,6 +43,11 @@ export function createFakeStorage() {
     async createUploadTarget(path) {
       return { uploadUrl: `https://storage.test/upload/${path}`, token: "upload-token" };
     },
+    async upload(path, bytes) {
+      if (files.has(path)) throw new Error("already exists");
+      files.add(path);
+      blobs.set(path, bytes);
+    },
     async createReadUrls(paths) {
       return new Map(
         paths.filter((p) => files.has(p)).map((p) => [p, `https://storage.test/read/${p}`]),

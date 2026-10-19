@@ -16,6 +16,8 @@ import { adminCreationRoutes } from "./portfolio/admin-routes.js";
 import { occasionRoutes, sellerCreationRoutes } from "./portfolio/routes.js";
 import { savedRoutes } from "./discovery/saved-routes.js";
 import { inquiryEventRoutes } from "./inquiries/routes.js";
+import { adminImportRoutes, type ImporterDeps } from "./imports/routes.js";
+import { createSafeFetcher } from "./imports/safe-fetch.js";
 import { adminPackageRoutes, sellerPackageRoutes } from "./packages/routes.js";
 import { publicRoutes } from "./public/routes.js";
 import type { MediaStorage } from "./storage/media-storage.js";
@@ -35,6 +37,8 @@ export interface AppDeps {
   webUrl?: string;
   /** Set to false in tests to switch off per-IP rate limiting. */
   rateLimiting?: boolean;
+  /** Website importer settings; tests replace the fetcher to reach a local server. */
+  importer?: Partial<ImporterDeps>;
 }
 
 const unavailable: RequestHandler = (_req, res) => {
@@ -111,6 +115,13 @@ export function createApp(
     app.use("/api/packages", sellerPackageRoutes(businessDeps));
     app.use("/api/admin/packages", adminPackageRoutes(businessDeps));
     app.use("/api/admin/analytics", adminAnalyticsRoutes(businessDeps));
+    app.use(
+      "/api/admin/imports",
+      adminImportRoutes({
+        ...businessDeps,
+        importer: { fetcher: createSafeFetcher(), ...deps.importer },
+      }),
+    );
     app.use("/api/analytics", sellerAnalyticsRoutes(businessDeps));
     app.use("/api/admin/website-requests", adminWebsiteRequestRoutes(businessDeps));
     app.use("/api/website-requests", sellerWebsiteRequestRoutes(businessDeps));
