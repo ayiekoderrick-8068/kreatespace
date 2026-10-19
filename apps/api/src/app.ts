@@ -11,6 +11,7 @@ import { adminBusinessRoutes } from "./businesses/admin-routes.js";
 import { categoryRoutes, sellerBusinessRoutes } from "./businesses/routes.js";
 import { adminInvitationRoutes, inviteeInvitationRoutes } from "./invitations/routes.js";
 import { discoveryRoutes } from "./discovery/routes.js";
+import { adminCreationRoutes } from "./portfolio/admin-routes.js";
 import { sellerCreationRoutes } from "./portfolio/routes.js";
 import { savedRoutes } from "./discovery/saved-routes.js";
 import { publicRoutes } from "./public/routes.js";
@@ -82,6 +83,7 @@ export function createApp(
     };
     app.use("/api/admin/invitations", adminInvitationRoutes(routeDeps));
     app.use("/api/admin/businesses", adminBusinessRoutes(businessDeps));
+    app.use("/api/admin/creations", adminCreationRoutes(businessDeps));
     app.use("/api/invitations", inviteeInvitationRoutes(routeDeps));
     app.use("/api/categories", categoryRoutes(businessDeps));
     app.use("/api/public", publicRoutes(businessDeps));

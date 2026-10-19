@@ -17,6 +17,8 @@ import {
   createCreation,
   getOwnCreation,
   listOwnCreations,
+  startCreationRevision,
+  submitCreation,
   updateCreationDraft,
 } from "./service.js";
 
@@ -63,6 +65,20 @@ export function sellerCreationRoutes(deps: PortfolioDeps): Router {
     const changes = parseInput(creationDraftSchema, req.body);
     await updateCreationDraft(prisma, { userId: req.user!.id, creationId, changes });
     res.json(await getOwnCreation(prisma, storage, { userId: req.user!.id, creationId }));
+  });
+
+  router.post("/:id/submit", writeLimiter, async (req, res) => {
+    const creationId = parseInput(idSchema, req.params.id);
+    await submitCreation(prisma, storage, { userId: req.user!.id, creationId });
+    res.json(await getOwnCreation(prisma, storage, { userId: req.user!.id, creationId }));
+  });
+
+  router.post("/:id/revisions", writeLimiter, async (req, res) => {
+    const creationId = parseInput(idSchema, req.params.id);
+    await startCreationRevision(prisma, { userId: req.user!.id, creationId });
+    res
+      .status(201)
+      .json(await getOwnCreation(prisma, storage, { userId: req.user!.id, creationId }));
   });
 
   router.post("/:id/archive", writeLimiter, async (req, res) => {

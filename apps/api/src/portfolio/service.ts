@@ -1,12 +1,13 @@
 import {
   MAX_ACTIVE_CREATIONS,
+  creationDetailsSchema,
   type CreationDetails,
   type CreationDraftInput,
   type CreationStatus,
 } from "@kreatespace/shared";
 import { recordAudit } from "../audit.js";
 import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
-import { HttpError, conflict, forbidden, notFound } from "../http/errors.js";
+import { HttpError, conflict, forbidden, notFound, parseInput } from "../http/errors.js";
 import { resolveImages } from "../storage/image-urls.js";
 import type { MediaStorage } from "../storage/media-storage.js";
 import {
@@ -16,7 +17,13 @@ import {
   type SellerRevisionView,
   type UsageView,
 } from "./views.js";
-import { OPEN_REVISION_STATUSES, canArchive, canOwnerEdit, canStartRevision } from "./workflow.js";
+import {
+  OPEN_REVISION_STATUSES,
+  canArchive,
+  canOwnerEdit,
+  canStartRevision,
+  creationStatusAfterSubmit,
+} from "./workflow.js";
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -320,6 +327,129 @@ export async function archiveCreation(
       entityType: "Creation",
       entityId: creation.id,
       metadata: { from: creation.status },
+    });
+  });
+}
+
+/**
+ * Sends the open draft for admin review. Everything a visitor would see must be complete first:
+ * the details, at least one photo, and every photo really present in storage.
+ */
+export async function submitCreation(
+  prisma: PrismaClient,
+  storage: MediaStorage | undefined,
+  input: { userId: string; creationId: string },
+): Promise<void> {
+  const { userId, creationId } = input;
+  const business = await requireApprovedBusiness(prisma, userId);
+  const { creation, open } = await loadOwnedCreation(prisma, userId, creationId);
+  if (!open || !canOwnerEdit(creation.status, open.status)) {
+    throw conflict("CANNOT_SUBMIT", "This creation can’t be submitted for review right now");
+  }
+
+  parseInput(creationDetailsSchema, {
+    title: open.title,
+    description: open.description,
+    categoryId: open.categoryId,
+    occasionId: open.occasionId,
+  });
+  if (open.images.length === 0) {
+    throw new HttpError(400, "VALIDATION_ERROR", "Some fields are invalid", {
+      fields: { images: "Add at least one photo before submitting" },
+    });
+  }
+  if (storage) {
+    const folder = `businesses/${business.id}/creations/${creation.id}`;
+    const stored = new Set(await storage.listFolder(folder));
+    const missing = open.images.filter(
+      (image) =>
+        !image.path.startsWith("dev-fixtures/") && !stored.has(image.path.slice(folder.length + 1)),
+    );
+    if (missing.length > 0) {
+      throw new HttpError(400, "VALIDATION_ERROR", "Some fields are invalid", {
+        fields: { images: "One or more photos are missing. Please upload them again." },
+      });
+    }
+  }
+
+  const now = new Date();
+  await prisma.$transaction(async (tx) => {
+    // Only a still-editable revision may move to PENDING, even with two submits at once.
+    const { count } = await tx.creationRevision.updateMany({
+      where: { id: open.id, status: { in: ["DRAFT", "CHANGES_REQUESTED"] } },
+      data: { status: "PENDING", submittedAt: now },
+    });
+    if (count === 0) {
+      throw conflict("CANNOT_SUBMIT", "This creation can’t be submitted for review right now");
+    }
+    await tx.creation.update({
+      where: { id: creation.id },
+      data: {
+        status: creationStatusAfterSubmit(creation.status, creation.publishedRevisionId !== null),
+      },
+    });
+    await recordAudit(tx, {
+      actorId: userId,
+      action: "creation.submitted",
+      entityType: "Creation",
+      entityId: creation.id,
+      metadata: { revisionId: open.id, version: open.version },
+    });
+  });
+}
+
+/**
+ * Starts an editable copy of the approved version (or of a rejected submission). The public
+ * keeps seeing the approved version until an admin approves the new one.
+ */
+export async function startCreationRevision(
+  prisma: PrismaClient,
+  input: { userId: string; creationId: string },
+): Promise<void> {
+  const { userId, creationId } = input;
+  await requireApprovedBusiness(prisma, userId);
+
+  await prisma.$transaction(async (tx) => {
+    const { creation, open } = await loadOwnedCreation(tx, userId, creationId);
+    if (!canStartRevision(creation.status, Boolean(open))) {
+      throw conflict(
+        "CANNOT_START_REVISION",
+        "You can only edit an approved or rejected creation that has no update in progress",
+      );
+    }
+    const source =
+      creation.revisions.find((r) => r.id === creation.publishedRevisionId) ??
+      creation.revisions[0]!;
+    const version = Math.max(...creation.revisions.map((r) => r.version)) + 1;
+
+    await tx.creationRevision.create({
+      data: {
+        creationId: creation.id,
+        version,
+        title: source.title,
+        description: source.description,
+        categoryId: source.categoryId,
+        occasionId: source.occasionId,
+        images: {
+          create: source.images.map((image) => ({
+            path: image.path,
+            position: image.position,
+            width: image.width,
+            height: image.height,
+          })),
+        },
+      },
+    });
+    // A rejected first submission goes back to being a draft; a live creation stays live.
+    if (creation.status === "REJECTED") {
+      await tx.creation.update({ where: { id: creation.id }, data: { status: "DRAFT" } });
+    }
+    await recordAudit(tx, {
+      actorId: userId,
+      action: "creation.revision_started",
+      entityType: "Creation",
+      entityId: creation.id,
+      metadata: { version },
     });
   });
 }
