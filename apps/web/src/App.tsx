@@ -1,31 +1,45 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { lazy, useState, type ComponentType } from "react";
 import { Navigate, RouterProvider, createBrowserRouter, type RouteObject } from "react-router";
 import { AuthProvider } from "./auth/AuthProvider";
 import { Layout } from "./components/Layout";
 import { RequireRole } from "./components/RequireRole";
-import { AdminLayout } from "./pages/admin/AdminLayout";
 import { AboutPage } from "./pages/AboutPage";
 import { AccountPage } from "./pages/AccountPage";
 import { CreationPage } from "./pages/CreationPage";
 import { ExplorePage } from "./pages/ExplorePage";
 import { ForBusinessesPage } from "./pages/ForBusinessesPage";
-import { BusinessReviewPage } from "./pages/admin/BusinessReviewPage";
-import { BusinessesPage } from "./pages/admin/BusinessesPage";
-import { InvitationsPage } from "./pages/admin/InvitationsPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { HomePage } from "./pages/HomePage";
-import { InvitePage } from "./pages/InvitePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PublicBusinessPage } from "./pages/PublicBusinessPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { SavedPage } from "./pages/SavedPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
-import { SellerDashboardPage } from "./pages/seller/SellerDashboardPage";
-import { SellerEditPage } from "./pages/seller/SellerEditPage";
-import { SellerRegisterPage } from "./pages/seller/SellerRegisterPage";
 
+// Private areas (admin, seller tools, invitations) load only when visited, so the public pages
+// that most visitors see ship less JavaScript on mobile networks.
+function lazyPage<T extends Record<string, ComponentType>>(load: () => Promise<T>, name: keyof T) {
+  return lazy(async () => ({ default: (await load())[name] as ComponentType }));
+}
+const AdminLayout = lazyPage(() => import("./pages/admin/AdminLayout"), "AdminLayout");
+const BusinessesPage = lazyPage(() => import("./pages/admin/BusinessesPage"), "BusinessesPage");
+const BusinessReviewPage = lazyPage(
+  () => import("./pages/admin/BusinessReviewPage"),
+  "BusinessReviewPage",
+);
+const InvitationsPage = lazyPage(() => import("./pages/admin/InvitationsPage"), "InvitationsPage");
+const InvitePage = lazyPage(() => import("./pages/InvitePage"), "InvitePage");
+const SellerDashboardPage = lazyPage(
+  () => import("./pages/seller/SellerDashboardPage"),
+  "SellerDashboardPage",
+);
+const SellerEditPage = lazyPage(() => import("./pages/seller/SellerEditPage"), "SellerEditPage");
+const SellerRegisterPage = lazyPage(
+  () => import("./pages/seller/SellerRegisterPage"),
+  "SellerRegisterPage",
+);
 export const routes: RouteObject[] = [
   { path: "/login", element: <LoginPage /> },
   { path: "/register", element: <RegisterPage /> },

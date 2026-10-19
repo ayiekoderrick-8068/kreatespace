@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { PLATFORM_NAME } from "@kreatespace/shared";
 import { useAuth } from "../auth/AuthProvider";
@@ -175,7 +175,15 @@ export function Layout() {
       </header>
 
       <div id="main" className="flex-1 pb-20 md:pb-0">
-        <Outlet />
+        <Suspense
+          fallback={
+            <p role="status" className="mx-auto max-w-7xl px-4 py-12 text-ink-muted">
+              Loading…
+            </p>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </div>
 
       <Footer />
