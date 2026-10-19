@@ -49,6 +49,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Audit dependencies
+        run: pnpm audit --audit-level high
+
       - name: Apply database migrations
         run: pnpm --filter @kreatespace/api db:deploy
 

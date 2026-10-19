@@ -6,7 +6,16 @@ import { failStaleJobs } from "./imports/service.js";
 import { getPrisma } from "./lib/prisma.js";
 import { createSupabaseMediaStorage } from "./storage/media-storage.js";
 
-const env = loadEnv();
+function readEnv() {
+  try {
+    return loadEnv();
+  } catch (error) {
+    // A configuration mistake is not a crash: say what to fix and stop.
+    console.error(error instanceof Error ? error.message : "Invalid configuration");
+    process.exit(1);
+  }
+}
+const env = readEnv();
 
 const deps: AppDeps = {};
 if (env.SUPABASE_URL && env.DATABASE_URL) {

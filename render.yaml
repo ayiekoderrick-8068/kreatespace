@@ -1,0 +1,68 @@
+# Render blueprint for the KreateSpace API. Nothing is deployed until you connect this
+# repository in Render. Secrets are marked `sync: false`: enter them in the Render dashboard
+# (never in this file). See docs/DEPLOYMENT.md for the full walkthrough.
+services:
+  - type: web
+    name: kreatespace-api
+    runtime: node
+    plan: starter
+    region: frankfurt # closest Render region to Kenya
+    rootDir: .
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @kreatespace/api build
+    # Applies database migrations before the new version starts taking traffic.
+    preDeployCommand: pnpm --filter @kreatespace/api db:deploy
+    startCommand: pnpm --filter @kreatespace/api start
+    healthCheckPath: /api/health
+    autoDeploy: false # deploy on purpose, not on every push
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22
+      - key: TRUST_PROXY
+        value: 1
+      - key: DATABASE_URL
+        sync: false # Supabase: Project Settings > Database > Connection string (pooled, port 6543)
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false # server only; never in the web app
+      - key: SUPABASE_STORAGE_BUCKET
+        value: business-media
+      - key: SUPABASE_IMAGE_TRANSFORMS
+        value: "false"
+      - key: WEB_URL
+        sync: false # https address of the website, e.g. https://www.example.com
+      - key: API_URL
+        sync: false # https address of this API, e.g. https://api.example.com
+      - key: CORS_ORIGIN
+        sync: false # the same address as WEB_URL (comma-separate more than one)
+
+  # Daily housekeeping: old analytics events, abandoned uploads, interrupted imports.
+  - type: cron
+    name: kreatespace-maintenance
+    runtime: node
+    plan: starter
+    region: frankfurt
+    schedule: "30 1 * * *" # 01:30 UTC every day
+    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    startCommand: pnpm --filter @kreatespace/api maintenance
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_STORAGE_BUCKET
+        value: business-media
+      - key: WEB_URL
+        sync: false
+      - key: API_URL
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
