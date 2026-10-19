@@ -14,7 +14,7 @@ A Pinterest-inspired platform where customers discover Kenyan creative businesse
 
 ## Requirements
 
-- Node.js 20+
+- Node.js 22+
 - pnpm 9+
 
 ## Getting started

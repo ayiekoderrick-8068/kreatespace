@@ -5,7 +5,7 @@
   "description": "KreateSpace — Discover. Connect. Create. A discovery platform for Kenyan creative businesses.",
   "packageManager": "pnpm@9.15.9",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "dev": "pnpm -r --parallel dev",
