@@ -32,10 +32,14 @@ const unavailable: RequestHandler = (_req, res) => {
   });
 };
 
-export function createApp(env: Pick<Env, "CORS_ORIGIN">, deps: AppDeps = {}): Express {
+export function createApp(
+  env: Pick<Env, "CORS_ORIGIN"> & Partial<Pick<Env, "TRUST_PROXY">>,
+  deps: AppDeps = {},
+): Express {
   const app = express();
 
   app.disable("x-powered-by");
+  if (env.TRUST_PROXY) app.set("trust proxy", env.TRUST_PROXY);
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
   app.use(express.json({ limit: "100kb" }));

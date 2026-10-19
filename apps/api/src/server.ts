@@ -34,6 +34,9 @@ if (env.SUPABASE_URL && env.DATABASE_URL) {
 }
 
 const app = createApp(env, deps);
+if (env.TRUST_PROXY === 0 && env.NODE_ENV === "production") {
+  console.warn("TRUST_PROXY is 0 in production: rate limits will see the proxy's address");
+}
 
 app.listen(env.PORT, () => {
   console.log(`KreateSpace API listening on port ${env.PORT}`);

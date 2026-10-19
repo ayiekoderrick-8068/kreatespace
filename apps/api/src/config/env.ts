@@ -4,6 +4,11 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   DATABASE_URL: z.string().min(1).optional(),
+  /**
+   * Number of reverse proxies in front of the API (e.g. 1 on most hosting platforms). Needed so
+   * per-IP rate limits see the real client address instead of the proxy's.
+   */
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
   /** Public URL of the web app (used in invitation links). */
   WEB_URL: z.url().default("http://localhost:5173"),
   SUPABASE_URL: z.url().optional(),
