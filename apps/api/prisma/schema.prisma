@@ -32,12 +32,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  invitationsSent     Invitation[]     @relation("InvitationSender")
-  invitationsAccepted Invitation[]     @relation("InvitationAcceptor")
+  invitationsSent     Invitation[]             @relation("InvitationSender")
+  invitationsAccepted Invitation[]             @relation("InvitationAcceptor")
   auditLogs           AuditLog[]
   business            Business?
-  reviewDecisions     ReviewDecision[] @relation("ReviewDecisionAdmin")
+  reviewDecisions     ReviewDecision[]         @relation("ReviewDecisionAdmin")
   savedCreations      SavedCreation[]
+  creationDecisions   CreationReviewDecision[] @relation("CreationDecisionAdmin")
 
   @@map("users")
 }
@@ -207,8 +208,10 @@ model ReviewDecision {
 enum CreationStatus {
   DRAFT
   PENDING
+  CHANGES_REQUESTED
   APPROVED
   REJECTED
+  SUSPENDED
   ARCHIVED
 }
 
@@ -236,10 +239,11 @@ model Creation {
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
-  business          Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  revisions         CreationRevision[] @relation("CreationRevisions")
-  publishedRevision CreationRevision?  @relation("PublishedCreationRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
+  business          Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  revisions         CreationRevision[]       @relation("CreationRevisions")
+  publishedRevision CreationRevision?        @relation("PublishedCreationRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
   saves             SavedCreation[]
+  decisions         CreationReviewDecision[]
 
   @@index([status, publishedAt(sort: Desc)])
   @@index([businessId])
@@ -259,11 +263,12 @@ model CreationRevision {
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  creation     Creation        @relation("CreationRevisions", fields: [creationId], references: [id], onDelete: Cascade)
-  publishedFor Creation?       @relation("PublishedCreationRevision")
-  category     Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  occasion     Occasion?       @relation(fields: [occasionId], references: [id], onDelete: SetNull)
+  creation     Creation                 @relation("CreationRevisions", fields: [creationId], references: [id], onDelete: Cascade)
+  publishedFor Creation?                @relation("PublishedCreationRevision")
+  category     Category                 @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  occasion     Occasion?                @relation(fields: [occasionId], references: [id], onDelete: SetNull)
   images       CreationImage[]
+  decisions    CreationReviewDecision[]
 
   @@unique([creationId, version])
   @@index([categoryId])
@@ -284,6 +289,7 @@ model CreationImage {
   revision CreationRevision @relation(fields: [revisionId], references: [id], onDelete: Cascade)
 
   @@unique([revisionId, position])
+  @@index([path])
   @@map("creation_images")
 }
 
@@ -298,4 +304,22 @@ model SavedCreation {
   @@id([userId, creationId])
   @@index([userId, createdAt(sort: Desc)])
   @@map("saved_creations")
+}
+
+/// Every moderation decision on a creation, with who made it and why.
+model CreationReviewDecision {
+  id         String       @id @default(uuid()) @db.Uuid
+  creationId String       @db.Uuid
+  revisionId String?      @db.Uuid
+  adminId    String       @db.Uuid
+  action     ReviewAction
+  reason     String?
+  createdAt  DateTime     @default(now())
+
+  creation Creation          @relation(fields: [creationId], references: [id], onDelete: Cascade)
+  revision CreationRevision? @relation(fields: [revisionId], references: [id], onDelete: SetNull)
+  admin    User              @relation("CreationDecisionAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+
+  @@index([creationId, createdAt])
+  @@map("creation_review_decisions")
 }

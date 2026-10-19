@@ -25,6 +25,8 @@ export interface BusinessOptions {
   whatsappNumber?: string;
   websiteUrl?: string | null;
   logoPath?: string | null;
+  /** Attach the business to an existing user instead of creating one. */
+  ownerId?: string;
 }
 
 const revisionStatusFor = (status: BusinessStatus): RevisionStatus =>
@@ -36,14 +38,16 @@ export async function buildBusiness(
 ): Promise<BuiltBusiness> {
   const status = options.status ?? "APPROVED";
   const slug = options.slug ?? slugify(options.name);
-  const ownerId = randomUUID();
+  const ownerId = options.ownerId ?? randomUUID();
   const category = await prisma.category.findUniqueOrThrow({
     where: { slug: options.categorySlug ?? "cakes" },
   });
 
-  await prisma.user.create({
-    data: { id: ownerId, email: `${slug}-${ownerId.slice(0, 8)}@example.test`, role: "SELLER" },
-  });
+  if (!options.ownerId) {
+    await prisma.user.create({
+      data: { id: ownerId, email: `${slug}-${ownerId.slice(0, 8)}@example.test`, role: "SELLER" },
+    });
+  }
   const business = await prisma.business.create({
     data: {
       ownerId,
@@ -102,8 +106,9 @@ export async function buildCreation(
   const occasion = options.occasionSlug
     ? await prisma.occasion.findUniqueOrThrow({ where: { slug: options.occasionSlug } })
     : null;
-  const revisionStatus: RevisionStatus =
-    status === "ARCHIVED" || status === "APPROVED" ? "APPROVED" : status;
+  // Published creations (including archived or suspended ones) have an approved revision.
+  const published = ["APPROVED", "ARCHIVED", "SUSPENDED"].includes(status);
+  const revisionStatus: RevisionStatus = published ? "APPROVED" : (status as RevisionStatus);
   const images = options.images ?? [
     { path: "dev-fixtures/sample-1.svg", width: 800, height: 1000 },
   ];
@@ -129,7 +134,6 @@ export async function buildCreation(
     include: { revisions: true },
   });
   const revision = creation.revisions[0]!;
-  const published = status === "APPROVED" || status === "ARCHIVED";
   await prisma.creation.update({
     where: { id: creation.id },
     data: {

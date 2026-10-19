@@ -6,6 +6,7 @@ import { InvalidTokenError, type TokenVerifier } from "../auth/token-verifier.js
 import { createPrismaUserStore } from "../auth/user-store.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import { getPrisma } from "../lib/prisma.js";
+import { buildBusiness, type BusinessOptions } from "../dev/builders.js";
 import { createFakeStorage } from "./fake-storage.js";
 
 /** Database-backed suites run only when TEST_DATABASE_URL points at a migrated database. */
@@ -126,10 +127,24 @@ export function createTestHarness(overrides: Partial<AppDeps> = {}) {
     return create.body.businessId;
   }
 
+  /** A seller account that owns a business in the given state (approved by default). */
+  async function sellerWithBusiness(
+    options: Partial<BusinessOptions> & { status?: BusinessOptions["status"] } = {},
+  ) {
+    const seller = await actor("SELLER");
+    const built = await buildBusiness(prisma, {
+      name: `Biz ${randomUUID().slice(0, 8)}`,
+      ...options,
+      ownerId: seller.id,
+    });
+    return { seller, ...built };
+  }
+
   return {
     app,
     prisma,
     actor,
+    sellerWithBusiness,
     newcomer,
     files: fake.files,
     categoryId,

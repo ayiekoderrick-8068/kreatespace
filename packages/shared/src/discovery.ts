@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { countySchema } from "./businesses.js";
 
-export const CREATION_STATUSES = ["DRAFT", "PENDING", "APPROVED", "REJECTED", "ARCHIVED"] as const;
+export const CREATION_STATUSES = [
+  "DRAFT",
+  "PENDING",
+  "CHANGES_REQUESTED",
+  "APPROVED",
+  "REJECTED",
+  "SUSPENDED",
+  "ARCHIVED",
+] as const;
 export type CreationStatus = (typeof CREATION_STATUSES)[number];
 
 export const DISCOVERY_PAGE_SIZE = 24;

@@ -9,4 +9,5 @@ export * from "./kenya.js";
 export * from "./review.js";
 export * from "./whatsapp.js";
 export * from "./phone.js";
+export * from "./portfolio.js";
 export * from "./roles.js";
