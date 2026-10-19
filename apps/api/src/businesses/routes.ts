@@ -13,6 +13,7 @@ import {
   createUploadTarget,
   getOwnBusiness,
   listCategories,
+  startRevision,
   submitForReview,
   updateDraft,
 } from "./service.js";
@@ -58,6 +59,11 @@ export function sellerBusinessRoutes(deps: BusinessRouteDeps): Router {
     const changes = parseInput(businessDraftSchema, req.body);
     await updateDraft(prisma, { ownerId: req.user!.id, changes });
     res.json(await getOwnBusiness(prisma, storage, req.user!.id));
+  });
+
+  router.post("/me/revisions", writeLimiter, async (req, res) => {
+    await startRevision(prisma, { ownerId: req.user!.id });
+    res.status(201).json(await getOwnBusiness(prisma, storage, req.user!.id));
   });
 
   router.post("/me/uploads", writeLimiter, async (req, res) => {

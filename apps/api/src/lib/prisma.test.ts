@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createPrismaUserStore } from "../auth/user-store.js";
+import { resetDatabase } from "../test/harness.js";
 import { disconnectPrisma, getPrisma } from "./prisma.js";
 
 // Runs against a migrated PostgreSQL database. Set TEST_DATABASE_URL and run
@@ -11,8 +12,7 @@ describe.skipIf(!testDatabaseUrl)("database schema", () => {
   const prisma = () => getPrisma(testDatabaseUrl);
 
   beforeEach(async () => {
-    await prisma().invitation.deleteMany();
-    await prisma().user.deleteMany();
+    await resetDatabase(prisma());
   });
 
   afterAll(async () => {

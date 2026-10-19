@@ -22,6 +22,7 @@ import {
   businessStatusAfterSubmit,
   canOwnerEdit,
   canOwnerSubmit,
+  canStartRevision,
 } from "./workflow.js";
 
 export const revisionInclude = {
@@ -231,6 +232,64 @@ export async function updateDraft(
         })),
       });
     }
+  });
+}
+
+/**
+ * Starts an editable copy of the published profile. The published version stays live and
+ * unchanged until an admin approves the new revision.
+ */
+export async function startRevision(
+  prisma: PrismaClient,
+  input: { ownerId: string },
+): Promise<void> {
+  await prisma.$transaction(async (tx) => {
+    const business = await tx.business.findUnique({
+      where: { ownerId: input.ownerId },
+      include: {
+        publishedRevision: { include: { images: { orderBy: { position: "asc" } } } },
+        revisions: { select: { version: true, status: true } },
+      },
+    });
+    if (!business) throw notFound("You have not registered a business yet");
+
+    const hasOpen = business.revisions.some((r) => OPEN_REVISION_STATUSES.includes(r.status));
+    const published = business.publishedRevision;
+    if (!published || !canStartRevision(business.status, hasOpen)) {
+      throw conflict(
+        "CANNOT_START_REVISION",
+        "You can only edit an approved profile that has no update in progress",
+      );
+    }
+
+    const version = Math.max(...business.revisions.map((r) => r.version)) + 1;
+    await tx.businessRevision.create({
+      data: {
+        businessId: business.id,
+        version,
+        businessName: published.businessName,
+        ownerName: published.ownerName,
+        description: published.description,
+        categoryId: published.categoryId,
+        county: published.county,
+        city: published.city,
+        websiteUrl: published.websiteUrl,
+        whatsappNumber: published.whatsappNumber,
+        logoPath: published.logoPath,
+        termsAcceptedAt: published.termsAcceptedAt,
+        contentAuthorizedAt: published.contentAuthorizedAt,
+        images: {
+          create: published.images.map((image) => ({ path: image.path, position: image.position })),
+        },
+      },
+    });
+    await recordAudit(tx, {
+      actorId: input.ownerId,
+      action: "business.revision_started",
+      entityType: "Business",
+      entityId: business.id,
+      metadata: { version },
+    });
   });
 }
 
