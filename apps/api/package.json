@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "admin:grant": "tsx src/scripts/grant-admin.ts",
+    "admin:reset-mfa": "tsx src/scripts/reset-admin-mfa.ts",
     "maintenance": "tsx src/scripts/maintenance.ts",
     "benchmark": "tsx src/scripts/benchmark.ts",
     "seed:dev": "tsx src/scripts/seed-dev.ts",

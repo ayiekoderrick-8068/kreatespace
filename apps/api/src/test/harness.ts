@@ -40,9 +40,15 @@ export interface TestActor {
  * A test app whose bearer tokens are looked up in a table instead of verified cryptographically
  * (JWT verification itself is covered in auth.test.ts). User rows, roles and the database are real.
  */
-export function createTestHarness(overrides: Partial<AppDeps> = {}) {
+export function createTestHarness(
+  overrides: Partial<AppDeps> = {},
+  options: { adminMfaRequired?: boolean } = {},
+) {
   const prisma = testPrisma();
-  const identities = new Map<string, { userId: string; email: string }>();
+  const identities = new Map<
+    string,
+    { userId: string; email: string; aal?: "aal1" | "aal2"; authenticatedAt?: Date }
+  >();
 
   const verifyToken: TokenVerifier = async (token) => {
     const identity = identities.get(token);
@@ -55,7 +61,11 @@ export function createTestHarness(overrides: Partial<AppDeps> = {}) {
   const app = createApp(
     { CORS_ORIGIN: [] },
     {
-      auth: { verifyToken, users: createPrismaUserStore(prisma) },
+      auth: {
+        verifyToken,
+        users: createPrismaUserStore(prisma),
+        adminMfaRequired: options.adminMfaRequired,
+      },
       prisma,
       storage: fake.storage,
       webUrl: "https://kreatespace.test",
@@ -67,10 +77,17 @@ export function createTestHarness(overrides: Partial<AppDeps> = {}) {
   async function actor(
     role: UserRole,
     email = `${role.toLowerCase()}-${randomUUID().slice(0, 8)}@example.com`,
+    session: { aal?: "aal1" | "aal2"; authenticatedAt?: Date } = {},
   ): Promise<TestActor> {
     const id = randomUUID();
     const token = `token-${id}`;
-    identities.set(token, { userId: id, email });
+    // Administrators sign in with two steps unless a test says otherwise.
+    identities.set(token, {
+      userId: id,
+      email,
+      aal: session.aal ?? (role === "ADMIN" ? "aal2" : "aal1"),
+      authenticatedAt: session.authenticatedAt ?? new Date(),
+    });
     await prisma.user.create({ data: { id, email, role, fullName: `Test ${role}` } });
     return { id, email, token };
   }

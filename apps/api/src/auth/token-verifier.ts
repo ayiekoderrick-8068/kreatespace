@@ -4,6 +4,26 @@ export interface VerifiedToken {
   userId: string;
   email: string;
   fullName?: string;
+  /**
+   * How strongly the session was authenticated: "aal2" means a second factor (an authenticator-app
+   * code) was verified. Anything else, or a missing claim, is treated as "aal1".
+   */
+  aal?: "aal1" | "aal2";
+  /** When the person last proved who they are (password, code or provider), if the token says. */
+  authenticatedAt?: Date;
+}
+
+/** The newest sign-in time among the methods listed in the token's `amr` claim. */
+function lastAuthenticationTime(amr: unknown): Date | undefined {
+  if (!Array.isArray(amr)) return undefined;
+  let newest = 0;
+  for (const entry of amr) {
+    const timestamp = (entry as { timestamp?: unknown } | null)?.timestamp;
+    if (typeof timestamp === "number" && Number.isFinite(timestamp) && timestamp > newest) {
+      newest = timestamp;
+    }
+  }
+  return newest > 0 ? new Date(newest * 1000) : undefined;
 }
 
 export type TokenVerifier = (token: string) => Promise<VerifiedToken>;
@@ -38,6 +58,8 @@ export function createTokenVerifier(
         userId: payload.sub,
         email: payload.email.toLowerCase(),
         fullName: typeof metadata?.full_name === "string" ? metadata.full_name : undefined,
+        aal: payload.aal === "aal2" ? "aal2" : "aal1",
+        authenticatedAt: lastAuthenticationTime(payload.amr),
       };
     } catch (error) {
       if (error instanceof InvalidTokenError) throw error;

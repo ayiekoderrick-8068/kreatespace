@@ -19,6 +19,19 @@ export function requireRole(...allowed: UserRole[]): RequestHandler {
         .json({ error: { code: "FORBIDDEN", message: "You do not have access to this resource" } });
       return;
     }
+    // Administrators can change what the whole public sees, so the server (never the website)
+    // insists on a second factor for anything admin-only.
+    if (allowed.includes("ADMIN") && req.user.role === "ADMIN") {
+      if (req.auth?.adminMfaRequired !== false && req.auth?.aal !== "aal2") {
+        res.status(403).json({
+          error: {
+            code: "MFA_REQUIRED",
+            message: "Two-step verification is required for administrators",
+          },
+        });
+        return;
+      }
+    }
     next();
   };
 }

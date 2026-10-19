@@ -25,6 +25,7 @@ if (env.SUPABASE_URL && env.DATABASE_URL) {
       jwtSecret: env.SUPABASE_JWT_SECRET,
     }),
     users: createPrismaUserStore(getPrisma(env.DATABASE_URL)),
+    adminMfaRequired: env.ADMIN_MFA_REQUIRED,
   };
   deps.prisma = getPrisma(env.DATABASE_URL);
   if (env.SUPABASE_SERVICE_ROLE_KEY) {

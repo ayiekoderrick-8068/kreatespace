@@ -25,7 +25,8 @@ describe.skipIf(!testDatabaseUrl)("authenticated API with a real database", () =
 
   const tokenFor = (sub: string, address: string) => {
     if (!createdEmails.includes(address)) createdEmails.push(address);
-    return new SignJWT({ email: address })
+    // The token of a person who has completed two-step verification (administrators need it).
+    return new SignJWT({ email: address, aal: "aal2" })
       .setProtectedHeader({ alg: "ES256" })
       .setSubject(sub)
       .setIssuer(ISSUER)

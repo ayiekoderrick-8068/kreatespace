@@ -27,6 +27,13 @@ describe("loadEnv", () => {
     expect(env.CORS_ORIGIN).toEqual(["https://kreatespace.co.ke", "https://www.kreatespace.co.ke"]);
   });
 
+  it("requires administrator two-step verification unless explicitly turned off", () => {
+    expect(loadEnv({}).ADMIN_MFA_REQUIRED).toBe(true);
+    expect(loadEnv(production).ADMIN_MFA_REQUIRED).toBe(true);
+    expect(loadEnv({ ADMIN_MFA_REQUIRED: "false" }).ADMIN_MFA_REQUIRED).toBe(false);
+    expect(() => loadEnv({ ADMIN_MFA_REQUIRED: "no" })).toThrow(/Invalid environment/);
+  });
+
   it("keeps development easy: nothing is required locally", () => {
     const env = loadEnv({});
     expect(env.NODE_ENV).toBe("development");
@@ -51,6 +58,11 @@ describe("loadEnv", () => {
     ["no public API address", { API_URL: undefined }, /API_URL/],
     ["an insecure API address", { API_URL: "http://api.kreatespace.co.ke" }, /API_URL/],
     ["a localhost API address", { API_URL: "https://localhost:4000" }, /API_URL/],
+    [
+      "administrator two-step verification switched off",
+      { ADMIN_MFA_REQUIRED: "false" },
+      /ADMIN_MFA_REQUIRED/,
+    ],
     ["an insecure web address", { WEB_URL: "http://kreatespace.co.ke" }, /WEB_URL/],
     ["a localhost web address", { WEB_URL: "https://localhost:5173" }, /WEB_URL/],
   ])("refuses to start in production with %s", (_name, overrides, expected) => {

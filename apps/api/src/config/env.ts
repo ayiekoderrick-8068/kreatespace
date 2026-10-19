@@ -9,6 +9,14 @@ const envSchema = z.object({
    * per-IP rate limits see the real client address instead of the proxy's.
    */
   TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
+  /**
+   * Administrators must complete two-step verification (an authenticator-app code). Leave on; it
+   * may be switched off for local development only, and production refuses to start without it.
+   */
+  ADMIN_MFA_REQUIRED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
   /** Public URL of this API (used for stable link-preview image addresses). */
   API_URL: z.url().optional(),
   /** Public URL of the web app (used in invitation links). */
@@ -65,6 +73,9 @@ function assertProductionSafe(env: Env, source: NodeJS.ProcessEnv): void {
     problems.push("SUPABASE_SERVICE_ROLE_KEY is required for image storage");
   if (!env.API_URL || !env.API_URL.startsWith("https://") || isLocal(env.API_URL)) {
     problems.push("API_URL must be the public https address of this API");
+  }
+  if (!env.ADMIN_MFA_REQUIRED) {
+    problems.push("ADMIN_MFA_REQUIRED must not be switched off in production");
   }
   if (!source.CORS_ORIGIN) problems.push("CORS_ORIGIN must be set to the web app's address");
   if (env.CORS_ORIGIN.some((origin) => origin === "*" || isLocal(origin))) {

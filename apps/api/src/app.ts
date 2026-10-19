@@ -80,7 +80,16 @@ export function createApp(
 
   app.get("/api/me", authenticate, (req, res) => {
     const { id, email, fullName, role } = req.user!;
-    res.json({ user: { id, email, fullName, role } });
+    // Administrators are told whether the second step is required and done, so the website can
+    // ask for it. (The server enforces it on every admin route regardless.)
+    const mfa =
+      role === "ADMIN"
+        ? {
+            required: req.auth?.adminMfaRequired !== false,
+            satisfied: req.auth?.aal === "aal2",
+          }
+        : undefined;
+    res.json({ user: { id, email, fullName, role, ...(mfa ? { mfa } : {}) } });
   });
 
   if (deps.auth && deps.prisma) {
