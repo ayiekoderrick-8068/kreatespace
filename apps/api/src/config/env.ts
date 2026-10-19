@@ -4,6 +4,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   DATABASE_URL: z.string().min(1).optional(),
+  /** Public URL of the web app (used in invitation links). */
+  WEB_URL: z.url().default("http://localhost:5173"),
   SUPABASE_URL: z.url().optional(),
   /** Only for projects still using the legacy shared JWT secret; omit for asymmetric signing keys. */
   SUPABASE_JWT_SECRET: z.string().min(1).optional(),

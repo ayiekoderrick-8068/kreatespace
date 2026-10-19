@@ -15,6 +15,8 @@ if (env.SUPABASE_URL && env.DATABASE_URL) {
     }),
     users: createPrismaUserStore(getPrisma(env.DATABASE_URL)),
   };
+  deps.prisma = getPrisma(env.DATABASE_URL);
+  deps.webUrl = env.WEB_URL;
 } else {
   console.warn("SUPABASE_URL or DATABASE_URL not set — authenticated routes are disabled");
 }
