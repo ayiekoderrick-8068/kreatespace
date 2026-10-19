@@ -23,8 +23,9 @@ function HeaderSearch() {
     navigate(q ? `/explore?q=${encodeURIComponent(q)}` : "/explore");
   }
 
-  // The Explore page has its own, larger search box.
-  if (pathname.startsWith("/explore")) return <div className="hidden flex-1 md:block" />;
+  // The homepage and Explore page have their own, larger search boxes.
+  if (pathname === "/" || pathname.startsWith("/explore"))
+    return <div className="hidden flex-1 md:block" />;
 
   return (
     <form onSubmit={onSubmit} role="search" className="hidden max-w-xs flex-1 md:block">

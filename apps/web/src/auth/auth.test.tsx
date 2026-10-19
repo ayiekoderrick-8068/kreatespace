@@ -6,6 +6,7 @@ import { mockApi, user } from "../test/mockApi";
 let fake: FakeAuth;
 
 beforeEach(() => {
+  mockApi();
   fake = createFakeAuth();
 });
 
@@ -31,7 +32,9 @@ describe("login", () => {
         password: "bakery2024",
       }),
     );
-    expect(await screen.findByRole("heading", { name: "KreateSpace" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: /Discover creativity/ }),
+    ).toBeInTheDocument();
   });
 
   it("shows the error returned by Supabase", async () => {
@@ -131,7 +134,9 @@ describe("password recovery", () => {
     await waitFor(() =>
       expect(fake.mocks.updateUser).toHaveBeenCalledWith({ password: "newbread99" }),
     );
-    expect(await screen.findByRole("heading", { name: "KreateSpace" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 1, name: /Discover creativity/ }),
+    ).toBeInTheDocument();
   });
 });
 
