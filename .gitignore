@@ -5,6 +5,9 @@ coverage/
 .turbo/
 *.tsbuildinfo
 
+# Generated Prisma client
+apps/api/src/generated/
+
 # Environment and secrets
 .env
 .env.*

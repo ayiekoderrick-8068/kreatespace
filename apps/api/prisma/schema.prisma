@@ -1,0 +1,57 @@
+// KreateSpace data model.
+// Models are added milestone by milestone; this foundation covers identity and invitations.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER
+  SELLER
+  ADMIN
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+/// Application profile for a Supabase Auth user. `id` equals the Supabase auth user id.
+model User {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  fullName  String?
+  role      UserRole @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  invitationsSent Invitation[] @relation("InvitationSender")
+
+  @@map("users")
+}
+
+/// Pilot invitation allowing a business owner to register as a seller.
+model Invitation {
+  id         String           @id @default(uuid()) @db.Uuid
+  email      String
+  /// SHA-256 hash of the invitation token; the raw token is never stored.
+  tokenHash  String           @unique
+  status     InvitationStatus @default(PENDING)
+  expiresAt  DateTime
+  acceptedAt DateTime?
+  createdAt  DateTime         @default(now())
+
+  invitedById String @db.Uuid
+  invitedBy   User   @relation("InvitationSender", fields: [invitedById], references: [id], onDelete: Restrict)
+
+  @@index([email])
+  @@index([status, expiresAt])
+  @@map("invitations")
+}
