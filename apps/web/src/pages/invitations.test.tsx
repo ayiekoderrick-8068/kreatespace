@@ -142,7 +142,7 @@ describe("admin invitations", () => {
       "GET /api/me": user("ADMIN"),
       "GET /api/admin/invitations": { body: { invitations: [pending, accepted] } },
     });
-    renderApp("/admin", createFakeAuth(fakeSession()).client);
+    renderApp("/admin/invitations", createFakeAuth(fakeSession()).client);
 
     const table = await screen.findByRole("table");
     const rows = within(table).getAllByRole("row");

@@ -8,6 +8,9 @@ export function AdminLayout() {
     <main className="mx-auto max-w-6xl px-4 py-8">
       <h1 className="text-2xl font-semibold tracking-tight">Administration</h1>
       <nav aria-label="Admin sections" className="mt-4 flex gap-6 border-b border-cream-dark">
+        <NavLink to="/admin/businesses" className={tab}>
+          Businesses
+        </NavLink>
         <NavLink to="/admin/invitations" className={tab}>
           Invitations
         </NavLink>

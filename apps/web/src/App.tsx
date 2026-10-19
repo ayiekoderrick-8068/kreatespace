@@ -5,6 +5,8 @@ import { AuthProvider } from "./auth/AuthProvider";
 import { Layout } from "./components/Layout";
 import { RequireRole } from "./components/RequireRole";
 import { AdminLayout } from "./pages/admin/AdminLayout";
+import { BusinessReviewPage } from "./pages/admin/BusinessReviewPage";
+import { BusinessesPage } from "./pages/admin/BusinessesPage";
 import { InvitationsPage } from "./pages/admin/InvitationsPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { HomePage } from "./pages/HomePage";
@@ -59,7 +61,9 @@ export const routes: RouteObject[] = [
           </RequireRole>
         ),
         children: [
-          { index: true, element: <Navigate to="/admin/invitations" replace /> },
+          { index: true, element: <Navigate to="/admin/businesses" replace /> },
+          { path: "businesses", element: <BusinessesPage /> },
+          { path: "businesses/:id", element: <BusinessReviewPage /> },
           { path: "invitations", element: <InvitationsPage /> },
         ],
       },
