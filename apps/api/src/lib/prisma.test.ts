@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
+import { createPrismaUserStore } from "../auth/user-store.js";
 import { disconnectPrisma, getPrisma } from "./prisma.js";
 
 // Runs against a migrated PostgreSQL database. Set TEST_DATABASE_URL and run
@@ -62,6 +63,18 @@ describe.skipIf(!testDatabaseUrl)("database schema", () => {
     };
     await prisma().invitation.create({ data });
     await expect(prisma().invitation.create({ data })).rejects.toThrow();
+  });
+
+  it("syncs users on sign-in without altering an existing role", async () => {
+    const store = createPrismaUserStore(prisma());
+    const id = randomUUID();
+    const first = await store.findOrCreate({ userId: id, email: "new@example.com" });
+    expect(first.role).toBe("CUSTOMER");
+
+    await prisma().user.update({ where: { id }, data: { role: "SELLER" } });
+    const second = await store.findOrCreate({ userId: id, email: "new@example.com" });
+    expect(second.role).toBe("SELLER");
+    expect(await prisma().user.count({ where: { id } })).toBe(1);
   });
 
   it("prevents deleting an admin who has sent invitations", async () => {

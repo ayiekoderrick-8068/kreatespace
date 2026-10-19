@@ -4,6 +4,9 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   DATABASE_URL: z.string().min(1).optional(),
+  SUPABASE_URL: z.url().optional(),
+  /** Only for projects still using the legacy shared JWT secret; omit for asymmetric signing keys. */
+  SUPABASE_JWT_SECRET: z.string().min(1).optional(),
   CORS_ORIGIN: z
     .string()
     .default("http://localhost:5173")
