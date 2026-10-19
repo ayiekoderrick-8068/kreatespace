@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { PLATFORM_NAME } from "@kreatespace/shared";
 import { useAuth } from "../auth/AuthProvider";
 import { recallInvite } from "../lib/pending-invite";
@@ -14,6 +14,7 @@ const tabLink = ({ isActive }: { isActive: boolean }) =>
 
 function HeaderSearch() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [text, setText] = useState("");
 
   function onSubmit(event: FormEvent) {
@@ -21,6 +22,9 @@ function HeaderSearch() {
     const q = text.trim();
     navigate(q ? `/explore?q=${encodeURIComponent(q)}` : "/explore");
   }
+
+  // The Explore page has its own, larger search box.
+  if (pathname.startsWith("/explore")) return <div className="hidden flex-1 md:block" />;
 
   return (
     <form onSubmit={onSubmit} role="search" className="hidden max-w-xs flex-1 md:block">
