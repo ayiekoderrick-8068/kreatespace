@@ -13,6 +13,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { SellerRegisterPage } from "./pages/seller/SellerRegisterPage";
 
 export const routes: RouteObject[] = [
   { path: "/login", element: <LoginPage /> },
@@ -24,6 +25,14 @@ export const routes: RouteObject[] = [
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/invite/:token", element: <InvitePage /> },
+      {
+        path: "/seller/register",
+        element: (
+          <RequireRole roles={["SELLER"]}>
+            <SellerRegisterPage />
+          </RequireRole>
+        ),
+      },
       {
         path: "/admin",
         element: (
