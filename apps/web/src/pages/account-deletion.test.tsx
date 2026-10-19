@@ -278,3 +278,169 @@ describe("deleting your account (customer)", () => {
     expect(await screen.findByText("Your account is scheduled for deletion")).toBeInTheDocument();
   });
 });
+
+const sellerState = (
+  overrides: Partial<DeletionState> = {},
+  business: Partial<NonNullable<DeletionState["effects"]["business"]>> = {},
+): DeletionState => ({
+  request: null,
+  graceDays: 14,
+  effects: {
+    role: "SELLER",
+    savedCreations: 0,
+    business: {
+      name: "Sweet Crumbs Bakery",
+      status: "APPROVED",
+      creations: 12,
+      packages: 1,
+      openWebsiteRequests: 2,
+      importInProgress: false,
+      ...business,
+    },
+  },
+  ...overrides,
+});
+
+describe("deleting your account (business owner)", () => {
+  it("spells out what happens to the business before anything is asked", async () => {
+    const api = mockApi({
+      "GET /api/me": user("SELLER"),
+      "GET /api/me/deletion": { body: sellerState() },
+    });
+    const u = userEvent.setup();
+    renderApp("/account", createFakeAuth(fakeSession()).client);
+    await openForm(u);
+
+    const impact = screen.getByTestId("business-impact");
+    expect(impact).toHaveTextContent("Your business “Sweet Crumbs Bakery” will be removed too");
+    expect(impact).toHaveTextContent(/public page \(currently approved\) disappears/);
+    expect(impact).toHaveTextContent(
+      /All 12 creations are deleted, including drafts and any waiting for review/,
+    );
+    expect(impact).toHaveTextContent("Its 1 service package is deleted");
+    expect(impact).toHaveTextContent(/2 open website requests will be deleted/);
+    expect(impact).toHaveTextContent(/administrator reviews every request from a business owner/);
+    expect(api.calls.some((c) => c.method === "POST")).toBe(false);
+  });
+
+  it("warns that a running import delays deletion, and handles singular wording", async () => {
+    mockApi({
+      "GET /api/me": user("SELLER"),
+      "GET /api/me/deletion": {
+        body: sellerState(
+          {},
+          { importInProgress: true, creations: 1, openWebsiteRequests: 0, packages: 0 },
+        ),
+      },
+    });
+    const u = userEvent.setup();
+    renderApp("/account", createFakeAuth(fakeSession()).client);
+    await openForm(u);
+    const impact = screen.getByTestId("business-impact");
+    expect(impact).toHaveTextContent("Its 1 creation is deleted, including drafts");
+    expect(impact).toHaveTextContent("It has no service packages.");
+    expect(impact).toHaveTextContent("You have no open website requests.");
+    expect(impact).toHaveTextContent("Deletion waits until it has finished.");
+  });
+
+  it("after asking, says an administrator must review it and that nothing is deleted yet", async () => {
+    const review = { ...openRequest, needsReview: true };
+    let state = sellerState();
+    mockApi({
+      "GET /api/me": user("SELLER"),
+      "GET /api/me/deletion": () => ({ body: state }),
+      "POST /api/me/deletion": () => {
+        state = sellerState({ request: review });
+        return { status: 201, body: { request: review } };
+      },
+    });
+    const u = userEvent.setup();
+    renderApp("/account", createFakeAuth(fakeSession()).client);
+    await openForm(u);
+    await u.click(screen.getByRole("checkbox", { name: /I understand/ }));
+    await u.click(screen.getByRole("button", { name: "Request account deletion" }));
+
+    expect(
+      await screen.findByText("Your request is waiting for an administrator’s review"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Nothing has been deleted yet.")).toBeInTheDocument();
+    expect(
+      screen.getByText(/An administrator checks every request from a business owner/),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("business-impact")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Keep my account/ })).toBeInTheDocument();
+  });
+
+  it("shows an approved request with its date, still not claiming it is done", async () => {
+    mockApi({
+      "GET /api/me": user("SELLER"),
+      "GET /api/me/deletion": {
+        body: sellerState({ request: { ...openRequest, status: "APPROVED", needsReview: true } }),
+      },
+    });
+    renderApp("/account", createFakeAuth(fakeSession()).client);
+    expect(await screen.findByText("Your request was approved")).toBeInTheDocument();
+    expect(screen.getByText("Nothing has been deleted yet.")).toBeInTheDocument();
+    expect(screen.getByText(/will be deleted on or after/)).toBeInTheDocument();
+  });
+
+  it("shows the reviewer’s reason when a business owner’s request is refused", async () => {
+    mockApi({
+      "GET /api/me": user("SELLER"),
+      "GET /api/me/deletion": {
+        body: sellerState({
+          request: {
+            ...openRequest,
+            status: "REJECTED",
+            needsReview: true,
+            reviewNote: "You have an unpaid website project.",
+          },
+        }),
+      },
+    });
+    renderApp("/account", createFakeAuth(fakeSession()).client);
+    expect(
+      await screen.findByText(/wasn’t approved: You have an unpaid website project\./),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete my account…" })).toBeInTheDocument();
+  });
+
+  it("relays the server’s refusal instead of pretending the request went through", async () => {
+    mockApi({
+      "GET /api/me": user("SELLER"),
+      "GET /api/me/deletion": { body: sellerState() },
+      "POST /api/me/deletion": {
+        status: 409,
+        body: {
+          error: {
+            code: "DELETION_ALREADY_REQUESTED",
+            message: "You have already asked to delete this account.",
+          },
+        },
+      },
+    });
+    const u = userEvent.setup();
+    renderApp("/account", createFakeAuth(fakeSession()).client);
+    await openForm(u);
+    await u.click(screen.getByRole("checkbox", { name: /I understand/ }));
+    await u.click(screen.getByRole("button", { name: "Request account deletion" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("You have already asked");
+    expect(screen.queryByText("Your account is scheduled for deletion")).not.toBeInTheDocument();
+  });
+
+  it("treats an owner who has not registered a business like any other customer", async () => {
+    mockApi({
+      "GET /api/me": user("SELLER"),
+      "GET /api/me/deletion": {
+        body: sellerState({
+          effects: { role: "SELLER", savedCreations: 0, business: null },
+        }),
+      },
+    });
+    const u = userEvent.setup();
+    renderApp("/account", createFakeAuth(fakeSession()).client);
+    await openForm(u);
+    expect(screen.queryByTestId("business-impact")).not.toBeInTheDocument();
+    expect(screen.getByText("You have no saved creations.")).toBeInTheDocument();
+  });
+});

@@ -10,6 +10,7 @@ import {
   type DeletionState,
 } from "../lib/account";
 import { ApiError } from "../lib/api";
+import { BusinessImpact } from "./BusinessImpact";
 import { CheckboxField, FormMessage, PrimaryButton, SecondaryButton, TextField } from "./forms";
 
 const dateFormat = new Intl.DateTimeFormat("en-KE", { dateStyle: "long" });
@@ -53,11 +54,13 @@ function SavedAndAccount({ state }: { state: DeletionState }) {
 
 function RequestStatus({
   request,
+  business,
   graceDays,
   onCancel,
   cancelling,
 }: {
   request: DeletionRequestView;
+  business: DeletionState["effects"]["business"];
   graceDays: number;
   onCancel: () => void;
   cancelling: boolean;
@@ -93,6 +96,11 @@ function RequestStatus({
         Asked on <time dateTime={request.requestedAt}>{day(request.requestedAt)}</time>. You can
         keep using KreateSpace until then.
       </p>
+      {business ? (
+        <div className="mt-3">
+          <BusinessImpact business={business} />
+        </div>
+      ) : null}
       <SecondaryButton type="button" className="mt-3" onClick={onCancel} disabled={cancelling}>
         {cancelling ? "Cancelling…" : "Keep my account (cancel the request)"}
       </SecondaryButton>
@@ -154,12 +162,15 @@ function RequestForm({ state, onDone }: { state: DeletionState; onDone: () => vo
       <div>
         <p className="text-sm font-medium">If you go ahead:</p>
         <SavedAndAccount state={state} />
-        {state.effects.business ? null : (
-          <p className="mt-3 text-sm">
-            Asking does not delete anything straight away. We wait {plural(state.graceDays, "day")}{" "}
-            first, and you can cancel any time before then.
-          </p>
-        )}
+        {state.effects.business ? (
+          <div className="mt-3">
+            <BusinessImpact business={state.effects.business} />
+          </div>
+        ) : null}
+        <p className="mt-3 text-sm">
+          Asking does not delete anything straight away. We wait {plural(state.graceDays, "day")}{" "}
+          first, and you can cancel any time before then.
+        </p>
       </div>
       {error ? <FormMessage kind="error">{error}</FormMessage> : null}
       <TextField
@@ -264,6 +275,7 @@ export function DeletionSection() {
       {isOpenDeletion(request) ? (
         <RequestStatus
           request={request!}
+          business={data.effects.business}
           graceDays={data.graceDays}
           onCancel={() => void withdraw()}
           cancelling={cancel.isPending}
