@@ -1,7 +1,8 @@
+import type { UserRole } from "@kreatespace/shared";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import type { VerifiedToken } from "./token-verifier.js";
 
-export type UserRole = "CUSTOMER" | "SELLER" | "ADMIN";
+export type { UserRole };
 
 export interface AppUser {
   id: string;
