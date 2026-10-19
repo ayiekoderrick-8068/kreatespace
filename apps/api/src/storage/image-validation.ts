@@ -58,7 +58,14 @@ export function inspectImage(buffer: Buffer): InspectedImage {
   let width: number | undefined;
   let height: number | undefined;
   try {
-    ({ width, height } = imageSize(buffer));
+    const size = imageSize(buffer);
+    ({ width, height } = size);
+    // Phones often store a portrait photo as a landscape grid plus a "turn it 90°" note (EXIF
+    // orientation 5 to 8). Browsers apply the note, so the photo is shown the other way round;
+    // the stored shape must match what people see or the gallery reserves the wrong space.
+    if (size.orientation !== undefined && size.orientation >= 5 && size.orientation <= 8) {
+      [width, height] = [height, width];
+    }
   } catch {
     throw new InvalidImageError("This file looks damaged and couldn’t be read as an image.");
   }
