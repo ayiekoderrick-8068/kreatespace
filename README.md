@@ -61,3 +61,24 @@ Database-backed API tests run only when `TEST_DATABASE_URL` points at a migrated
 pnpm --filter @kreatespace/e2e exec playwright install chromium
 E2E_DATABASE_URL=postgresql://… pnpm test:e2e
 ```
+
+## Discovery
+
+The public site (`/`, `/explore`, `/creations/:id`, `/businesses/:slug`, `/saved`) reads from the `/api/public/*` endpoints. One rule decides what visitors may see (`apps/api/src/discovery/visibility.ts`): a creation is public only when it is **approved with a published revision** and its business is **approved and not suspended**. Every public query, including search, related creations and saved lists, goes through it.
+
+- **Search** uses PostgreSQL full-text search (English stemming, so "cakes" finds "cake") over a creation's title and description, its business name, category and occasion, plus partial matching on titles and business names while typing. Filters (category, occasion, county, city) combine with search, and all of it lives in the page address so results can be shared.
+- **Pagination** is one page at a time (24 by default); the API never counts or returns the whole catalogue.
+- **Related creations** share a category or occasion with the one being viewed; sharing a county only nudges the order.
+- **Images** carry their width and height so layouts don't jump while loading. Set `SUPABASE_IMAGE_TRANSFORMS=true` (needs a Supabase plan with image transformations) to serve resized variants through `srcset`.
+- **Saved creations** need an account. Visitors who try to save are invited to log in, and the save finishes after they do.
+
+### Development fixtures
+
+Sellers cannot publish creations yet (that arrives with seller creation management), so the feed is empty on a fresh database. To see the pages with content:
+
+```bash
+pnpm --filter @kreatespace/api seed:dev            # add labelled placeholder content
+pnpm --filter @kreatespace/api seed:dev --remove   # delete it again
+```
+
+Everything this adds is plainly marked as a **development fixture** (names start with "Dev Fixture", images say so), and the command refuses to run when `NODE_ENV=production`.
