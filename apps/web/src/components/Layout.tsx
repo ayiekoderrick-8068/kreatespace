@@ -6,6 +6,7 @@ import { useAuth } from "../auth/AuthProvider";
 import { recallInvite } from "../lib/pending-invite";
 import { forgetPendingSave, recallPendingSave } from "../lib/pending-save";
 import { queryKeys, useApi, useCurrentUser } from "../lib/queries";
+import { ConnectionNotice } from "./ConnectionNotice";
 import { HeartIcon, HomeIcon, SearchIcon, UserIcon } from "./icons";
 
 const topLink = ({ isActive }: { isActive: boolean }) =>
@@ -107,6 +108,7 @@ export function Layout() {
       >
         Skip to content
       </a>
+      <ConnectionNotice />
       <header className="sticky top-0 z-30 border-b border-sand bg-cream/95 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
           <Link to="/" className="font-display text-xl font-semibold tracking-tight">

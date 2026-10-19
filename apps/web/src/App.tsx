@@ -9,6 +9,7 @@ import {
   type RouteObject,
 } from "react-router";
 import { AuthProvider } from "./auth/AuthProvider";
+import { AppErrorBoundary, RouteErrorPage } from "./components/ErrorPage";
 import { Layout } from "./components/Layout";
 import { RequireRole } from "./components/RequireRole";
 import { staticMetaFor, usePageMeta } from "./lib/page-meta";
@@ -114,7 +115,9 @@ function RouteMeta() {
   return <Outlet />;
 }
 
-export const routes: RouteObject[] = [{ element: <RouteMeta />, children: pages() }];
+export const routes: RouteObject[] = [
+  { element: <RouteMeta />, errorElement: <RouteErrorPage />, children: pages() },
+];
 
 function pages(): RouteObject[] {
   return [
@@ -236,10 +239,12 @@ export function App() {
   const [router] = useState(() => createBrowserRouter(routes));
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   );
 }
