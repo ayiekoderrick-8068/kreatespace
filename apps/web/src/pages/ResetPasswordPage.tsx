@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { useAuth } from "../auth/AuthProvider";
-import { AuthLayout, FormMessage, PrimaryButton, TextField } from "../auth/components";
+import { AuthLayout, FormMessage, PrimaryButton, TextField } from "../components/forms";
 
 export function ResetPasswordPage() {
   const { loading, recovering, session, updatePassword } = useAuth();

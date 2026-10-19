@@ -1,6 +1,7 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createFakeAuth, fakeSession, renderApp, type FakeAuth } from "../test/renderWithProviders";
+import { mockApi, user } from "../test/mockApi";
 
 let fake: FakeAuth;
 
@@ -135,13 +136,14 @@ describe("password recovery", () => {
 });
 
 describe("session state", () => {
-  it("shows the signed-in user and logs out", async () => {
+  it("shows the signed-in user in the header and logs out", async () => {
     fake = createFakeAuth(fakeSession("maria@example.com"));
-    const user = userEvent.setup();
+    mockApi({ "GET /api/me": user("CUSTOMER") });
+    const u = userEvent.setup();
     renderApp("/", fake.client);
 
-    expect(await screen.findByText("Signed in as maria@example.com")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Log out" }));
+    expect(await screen.findByText("maria@example.com")).toBeInTheDocument();
+    await u.click(screen.getByRole("button", { name: "Log out" }));
     expect(fake.mocks.signOut).toHaveBeenCalled();
   });
 });

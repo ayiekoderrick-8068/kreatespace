@@ -10,7 +10,7 @@ import {
   NotConfiguredNotice,
   PrimaryButton,
   TextField,
-} from "../auth/components";
+} from "../components/forms";
 
 export function RegisterPage() {
   const { configured, signUp } = useAuth();

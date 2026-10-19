@@ -11,7 +11,7 @@ import {
   NotConfiguredNotice,
   PrimaryButton,
   TextField,
-} from "../auth/components";
+} from "../components/forms";
 
 export function LoginPage() {
   const { configured, signIn, signInWithGoogle } = useAuth();
