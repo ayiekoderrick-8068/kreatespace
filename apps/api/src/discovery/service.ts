@@ -1,5 +1,5 @@
 import type { CreationListQuery } from "@kreatespace/shared";
-import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
+import { Prisma, type PrismaClient } from "../generated/prisma/client.js";
 import { notFound } from "../http/errors.js";
 import { resolveImages, type ImageView } from "../storage/image-urls.js";
 import type { MediaStorage } from "../storage/media-storage.js";
@@ -95,6 +95,37 @@ async function cardsInOrder(
   return toCards(storage, ordered);
 }
 
+/** What a customer's text is matched against: the creation, its business, category and occasion. */
+const searchDocumentSql = Prisma.sql`to_tsvector('english',
+  cr."title" || ' ' || cr."description" || ' ' || br."businessName" || ' ' || cat."name" || ' ' || coalesce(o."name", ''))`;
+
+/** Escapes LIKE wildcards so what people type is matched literally. */
+function likePattern(text: string): string {
+  return `%${text.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
+}
+
+/**
+ * Builds the optional filter conditions. Values are always bound as parameters, never
+ * concatenated into the SQL text.
+ */
+function filterSql(query: CreationListQuery): Prisma.Sql {
+  const conditions: Prisma.Sql[] = [];
+  if (query.category) conditions.push(Prisma.sql`cat."slug" = ${query.category}`);
+  if (query.occasion) conditions.push(Prisma.sql`o."slug" = ${query.occasion}`);
+  if (query.county) conditions.push(Prisma.sql`br."county" = ${query.county}`);
+  if (query.city) conditions.push(Prisma.sql`lower(br."city") = lower(${query.city})`);
+  if (query.q) {
+    // Whole-word matches (with stemming: "cakes" finds "cake") plus partial matches on the
+    // title and business name, so results appear while the customer is still typing.
+    const pattern = likePattern(query.q);
+    conditions.push(Prisma.sql`(
+      ${searchDocumentSql} @@ websearch_to_tsquery('english', ${query.q})
+      OR cr."title" ILIKE ${pattern} ESCAPE '\\'
+      OR br."businessName" ILIKE ${pattern} ESCAPE '\\')`);
+  }
+  return conditions.length > 0 ? Prisma.sql`AND ${Prisma.join(conditions, " AND ")}` : Prisma.empty;
+}
+
 export async function listCreations(
   prisma: PrismaClient,
   storage: MediaStorage | undefined,
@@ -103,12 +134,17 @@ export async function listCreations(
   const { page, pageSize } = query;
   const offset = (page - 1) * pageSize;
 
+  const orderBy = query.q
+    ? Prisma.sql`ts_rank(${searchDocumentSql}, websearch_to_tsquery('english', ${query.q})) DESC,
+        c."publishedAt" DESC, c."id"`
+    : Prisma.sql`c."publishedAt" DESC, c."id"`;
+
   // One extra row tells us whether another page exists without a COUNT over the whole catalogue.
   const rows = await prisma.$queryRaw<{ id: string }[]>`
     SELECT c."id"
     ${visibleFromSql}
-    WHERE ${visibleWhereSql}
-    ORDER BY c."publishedAt" DESC, c."id"
+    WHERE ${visibleWhereSql} ${filterSql(query)}
+    ORDER BY ${orderBy}
     LIMIT ${pageSize + 1} OFFSET ${offset}`;
 
   const hasMore = rows.length > pageSize;
@@ -116,6 +152,31 @@ export async function listCreations(
   return { items: await cardsInOrder(prisma, storage, ids), page, pageSize, hasMore };
 }
 
+/** Counties and cities where approved businesses with live creations are based. */
+export async function listCities(prisma: PrismaClient, county: string): Promise<string[]> {
+  const rows = await prisma.$queryRaw<{ city: string }[]>`
+    SELECT DISTINCT br."city"
+    ${visibleFromSql}
+    WHERE ${visibleWhereSql} AND br."county" = ${county}
+    ORDER BY br."city"`;
+  return rows.map((row) => row.city);
+}
+
+export async function listFilters(prisma: PrismaClient) {
+  const [categories, occasions] = await Promise.all([
+    prisma.category.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { slug: true, name: true },
+    }),
+    prisma.occasion.findMany({
+      where: { active: true },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { slug: true, name: true },
+    }),
+  ]);
+  return { categories, occasions };
+}
 export interface CreationDetail {
   id: string;
   title: string;
