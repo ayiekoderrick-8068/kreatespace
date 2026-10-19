@@ -9,6 +9,15 @@ const CORS = {
   "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
 };
 
+/** The only password the stand-in sign-in accepts. */
+export const MOCK_PASSWORD = "password123";
+
+/** What the browser asked the stand-in sign-in service to do, for tests to inspect. */
+export const authRequests: { signups: unknown[]; recoveries: unknown[] } = {
+  signups: [],
+  recoveries: [],
+};
+
 /** The only code the stand-in authenticator accepts. */
 export const TEST_TOTP_CODE = "123456";
 
@@ -120,7 +129,20 @@ export async function mockSupabase(context: BrowserContext): Promise<void> {
     }
 
     if (url.pathname === "/auth/v1/token" && url.searchParams.get("grant_type") === "password") {
-      const { email } = request.postDataJSON() as { email: string };
+      const { email, password } = request.postDataJSON() as { email: string; password: string };
+      if (password !== MOCK_PASSWORD) {
+        // Supabase answers a wrong password and an unknown address in exactly the same way.
+        return route.fulfill({
+          status: 400,
+          headers: CORS,
+          json: {
+            code: 400,
+            error_code: "invalid_credentials",
+            msg: "Invalid login credentials",
+            message: "Invalid login credentials",
+          },
+        });
+      }
       return route.fulfill({
         status: 200,
         headers: CORS,
@@ -187,6 +209,42 @@ export async function mockSupabase(context: BrowserContext): Promise<void> {
       const email = emailFromAuthorization(request.headers().authorization);
       if (email && factors.get(email)?.id === removal[1]) factors.delete(email);
       return route.fulfill({ status: 200, headers: CORS, json: { id: removal[1] } });
+    }
+
+    if (url.pathname === "/auth/v1/signup" && request.method() === "POST") {
+      const body = request.postDataJSON() as { email: string };
+      authRequests.signups.push(body);
+      // An address that already has an account gets the error the app must hide from visitors.
+      if (body.email.startsWith("existing-")) {
+        return route.fulfill({
+          status: 422,
+          headers: CORS,
+          json: {
+            code: 422,
+            error_code: "user_already_exists",
+            msg: "User already registered",
+            message: "User already registered",
+          },
+        });
+      }
+      // A new account that still has to verify its address comes back without a session.
+      return route.fulfill({
+        status: 200,
+        headers: CORS,
+        json: {
+          ...userFor(body.email.toLowerCase()),
+          confirmation_sent_at: new Date().toISOString(),
+        },
+      });
+    }
+
+    if (url.pathname === "/auth/v1/recover" && request.method() === "POST") {
+      authRequests.recoveries.push({
+        ...(request.postDataJSON() as object),
+        redirectTo: url.searchParams.get("redirect_to"),
+      });
+      // The same answer whether or not the address has an account.
+      return route.fulfill({ status: 200, headers: CORS, json: {} });
     }
 
     if (url.pathname === "/auth/v1/logout") {
