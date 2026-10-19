@@ -14,6 +14,7 @@
   "dependencies": {
     "@hookform/resolvers": "^6.0.0",
     "@kreatespace/shared": "workspace:^",
+    "@supabase/supabase-js": "^2.118.0",
     "@tanstack/react-query": "^5.104.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
