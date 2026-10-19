@@ -24,7 +24,7 @@ import { ApiError } from "../../lib/api";
 import { portfolioKeys, useOccasions, useOwnCreation } from "../../lib/portfolio";
 import { useApi, useCategories } from "../../lib/queries";
 import type { OwnCreation, SellerImage } from "../../lib/types";
-import { uploadRequestFor, uploadToStorage, validateImageFile } from "../../lib/uploads";
+import { prepareImage, uploadRequestFor, uploadToStorage } from "../../lib/uploads";
 
 const message = (error: unknown) =>
   error instanceof ApiError || error instanceof Error
@@ -209,17 +209,17 @@ function PhotoManager({
     setUploads(chosen.map((file) => ({ name: file.name, state: "uploading" })));
     setBusy(true);
     for (const [index, file] of chosen.entries()) {
-      const invalid = validateImageFile(file);
-      if (invalid) {
-        track(index, { state: "failed", error: invalid });
+      const prepared = await prepareImage(file);
+      if ("error" in prepared) {
+        track(index, { state: "failed", error: prepared.error });
         continue;
       }
       try {
         const target = await api.post<{ path: string; token: string }>(
           `/api/creations/${id}/uploads`,
-          uploadRequestFor(file),
+          uploadRequestFor(prepared.file),
         );
-        await uploadToStorage(target.path, target.token, file);
+        await uploadToStorage(target.path, target.token, prepared.file);
         track(index, { state: "checking" });
         onChange(await api.post<OwnCreation>(`/api/creations/${id}/images`, { path: target.path }));
         track(index, { state: "done" });

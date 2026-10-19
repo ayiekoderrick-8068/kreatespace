@@ -14,12 +14,7 @@ import { useForm } from "react-hook-form";
 import { ApiError } from "../lib/api";
 import { queryKeys, useApi, useCategories } from "../lib/queries";
 import type { OwnBusiness } from "../lib/types";
-import {
-  previewUrlFor,
-  uploadRequestFor,
-  uploadToStorage,
-  validateImageFile,
-} from "../lib/uploads";
+import { previewUrlFor, uploadRequestFor, uploadToStorage, prepareImage } from "../lib/uploads";
 import {
   CheckboxField,
   FormMessage,
@@ -178,18 +173,18 @@ export function BusinessWizard({ mode, business, onSubmitted }: Props) {
     setUploading(true);
     setPhotoError(null);
     for (const file of files.slice(0, Math.max(room, 0))) {
-      const invalid = validateImageFile(file);
-      if (invalid) {
-        problems.push(invalid);
+      const prepared = await prepareImage(file);
+      if ("error" in prepared) {
+        problems.push(prepared.error);
         continue;
       }
       try {
         const upload = await api.post<{ path: string; token: string }>(
           "/api/businesses/me/uploads",
-          uploadRequestFor(file),
+          uploadRequestFor(prepared.file),
         );
-        await uploadToStorage(upload.path, upload.token, file);
-        const photo = { path: upload.path, url: previewUrlFor(file), name: file.name };
+        await uploadToStorage(upload.path, upload.token, prepared.file);
+        const photo = { path: upload.path, url: previewUrlFor(prepared.file), name: file.name };
         if (target === "logo") setLogo(photo);
         else setPortfolio((current) => [...current, photo]);
       } catch (error) {

@@ -16,7 +16,7 @@ import { ApiError } from "../../lib/api";
 import { portfolioKeys } from "../../lib/portfolio";
 import { useApi } from "../../lib/queries";
 import type { OwnPackage } from "../../lib/types";
-import { uploadRequestFor, uploadToStorage, validateImageFile } from "../../lib/uploads";
+import { prepareImage, uploadRequestFor, uploadToStorage } from "../../lib/uploads";
 
 interface PackageList {
   packages: OwnPackage[];
@@ -119,18 +119,19 @@ function PackageEditor({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file || !pkg) return;
-    const invalid = validateImageFile(file);
-    if (invalid) {
-      setImageStatus(invalid);
+    setImageStatus("Preparing the photo…");
+    const prepared = await prepareImage(file);
+    if ("error" in prepared) {
+      setImageStatus(prepared.error);
       return;
     }
     setImageStatus("Uploading…");
     try {
       const target = await api.post<{ path: string; token: string }>(
         `/api/packages/${pkg.id}/image-upload`,
-        uploadRequestFor(file),
+        uploadRequestFor(prepared.file),
       );
-      await uploadToStorage(target.path, target.token, file);
+      await uploadToStorage(target.path, target.token, prepared.file);
       setImageStatus("Checking the photo…");
       onSaved(await api.post<OwnPackage>(`/api/packages/${pkg.id}/image`, { path: target.path }));
       setImageStatus("Photo added.");
