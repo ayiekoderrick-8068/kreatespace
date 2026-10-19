@@ -99,8 +99,12 @@ supplied by people. Controls, each covered by tests in `apps/api/src/imports/`:
   the only newer Prisma is an 8.0 release candidate, so there is no safe supported fix yet. With
   `pg` 8 it is only a warning and behaviour is correct; `pg` 9 would turn it into an error. A test
   (`security/dependencies.test.ts`) fails if `pg` is raised to 9 first. Revisit when Prisma 8 is
-  stable.
-- **Legal and privacy documents are missing** (see `docs/PILOT_CHECKLIST.md`).
+  stable. _Re-checked on 20 October 2026 with `npm view`:_ `prisma` is still only at
+  `8.0.0-rc.23` (a release candidate, although npm tags it `latest`) and `@prisma/adapter-pg`'s
+  `latest` is still 7.10.1, so there is still no stable fix to move to.
+- **Legal and privacy documents are drafts.** The terms, seller terms and privacy policy pages
+  exist and acceptance is recorded, but a lawyer has not reviewed them (see
+  `docs/PILOT_CHECKLIST.md`).
 
 ## Reporting a problem
 
