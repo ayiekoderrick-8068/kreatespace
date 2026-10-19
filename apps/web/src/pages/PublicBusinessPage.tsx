@@ -1,9 +1,17 @@
-import { buildWhatsAppLink, isSafeWebUrl, profileInquiryMessage } from "@kreatespace/shared";
+import {
+  buildWhatsAppLink,
+  isSafeWebUrl,
+  packageInquiryMessage,
+  profileInquiryMessage,
+  supportsQuoteRequests,
+} from "@kreatespace/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Link, useParams } from "react-router";
-import { Masonry } from "../components/gallery";
+import { Masonry, Photo } from "../components/gallery";
+import { QuoteRequestForm } from "../components/QuoteRequestForm";
 import { ApiError, apiRequest } from "../lib/api";
+import { trackEvent, useTrackView } from "../lib/events";
 import { queryKeys } from "../lib/queries";
 import type { PublicBusiness } from "../lib/types";
 
@@ -20,6 +28,10 @@ export function PublicBusinessPage() {
       ).business,
   });
   const business = result.data;
+  useTrackView(
+    business ? `business:${slug}` : null,
+    business ? { type: "BUSINESS_VIEW", businessSlug: slug } : null,
+  );
 
   useEffect(() => {
     if (business) document.title = `${business.businessName} — KreateSpace`;
@@ -95,6 +107,9 @@ export function PublicBusinessPage() {
             href={whatsappLink}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() =>
+              trackEvent({ type: "WHATSAPP_CLICK", businessSlug: slug, source: "business_page" })
+            }
             className="rounded-md bg-terracotta px-5 py-2.5 font-medium text-white hover:bg-terracotta-dark focus:outline-2 focus:outline-offset-2 focus:outline-terracotta"
           >
             Message on WhatsApp
@@ -105,12 +120,28 @@ export function PublicBusinessPage() {
             href={websiteUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() =>
+              trackEvent({ type: "WEBSITE_CLICK", businessSlug: slug, source: "business_page" })
+            }
             className="rounded-md border border-ink-muted/40 bg-white px-5 py-2.5 font-medium hover:bg-cream focus:outline-2 focus:outline-offset-2 focus:outline-terracotta"
           >
             Visit website
           </a>
         ) : null}
       </div>
+
+      {whatsappLink && business.categories.some((c) => supportsQuoteRequests(c.slug)) ? (
+        <div className="mt-4">
+          <QuoteRequestForm
+            businessName={business.businessName}
+            whatsappNumber={business.whatsappNumber}
+            pageUrl={`${window.location.origin}/businesses/${slug}`}
+            onOpen={() =>
+              trackEvent({ type: "WHATSAPP_CLICK", businessSlug: slug, source: "quote" })
+            }
+          />
+        </div>
+      ) : null}
 
       <section aria-labelledby="about" className="mt-8">
         <h2 id="about" className="text-lg font-semibold">
@@ -120,6 +151,70 @@ export function PublicBusinessPage() {
           {business.description}
         </p>
       </section>
+
+      {business.packages.length > 0 ? (
+        <section aria-labelledby="packages" className="mt-10">
+          <h2 id="packages" className="text-lg font-semibold">
+            Service packages
+          </h2>
+          <ul className="mt-3 grid gap-4 sm:grid-cols-2">
+            {business.packages.map((pkg) => {
+              const link = buildWhatsAppLink(
+                business.whatsappNumber,
+                packageInquiryMessage(
+                  business.businessName,
+                  pkg.name,
+                  `${window.location.origin}/businesses/${slug}`,
+                ),
+              );
+              return (
+                <li key={pkg.id} className="rounded-2xl border border-sand bg-white p-5">
+                  {pkg.image?.url ? (
+                    <div className="mb-3 overflow-hidden rounded-xl">
+                      <Photo
+                        image={pkg.image}
+                        alt={`${pkg.name} photo`}
+                        allowRetry={false}
+                        sizes="400px"
+                      />
+                    </div>
+                  ) : null}
+                  <h3 className="text-lg font-semibold">{pkg.name}</h3>
+                  {pkg.startingPriceKes ? (
+                    <p className="mt-0.5 text-sm font-medium text-terracotta">
+                      From KSh {new Intl.NumberFormat("en-KE").format(pkg.startingPriceKes)}
+                    </p>
+                  ) : null}
+                  <p className="mt-2 text-sm text-ink-muted">{pkg.description}</p>
+                  <ul className="mt-3 list-inside list-disc text-sm text-ink-muted">
+                    {pkg.includes.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                  {link ? (
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() =>
+                        trackEvent({
+                          type: "WHATSAPP_CLICK",
+                          businessSlug: slug,
+                          packageId: pkg.id,
+                          source: "package",
+                        })
+                      }
+                      className="mt-4 inline-block rounded-full bg-terracotta px-5 py-2 text-sm font-medium text-white hover:bg-terracotta-dark"
+                    >
+                      Ask about this package
+                    </a>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
 
       {business.creations.length > 0 ? (
         <section aria-labelledby="creations" className="mt-10">

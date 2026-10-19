@@ -1,10 +1,17 @@
-import { buildWhatsAppLink, creationInquiryMessage, isSafeWebUrl } from "@kreatespace/shared";
+import {
+  buildWhatsAppLink,
+  creationInquiryMessage,
+  isSafeWebUrl,
+  supportsQuoteRequests,
+} from "@kreatespace/shared";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { FormMessage, SecondaryButton } from "../components/forms";
 import { GallerySkeleton, Masonry, Photo } from "../components/gallery";
+import { QuoteRequestForm } from "../components/QuoteRequestForm";
 import { SaveButton } from "../components/SaveButton";
 import { ApiError } from "../lib/api";
+import { trackEvent, useTrackView } from "../lib/events";
 import { useCreation, useRelatedCreations } from "../lib/queries";
 
 function BackToExplore() {
@@ -19,6 +26,10 @@ export function CreationPage() {
   const { id = "" } = useParams();
   const creation = useCreation(id);
   const related = useRelatedCreations(id, Boolean(creation.data));
+  useTrackView(
+    creation.data ? `creation:${id}` : null,
+    creation.data ? { type: "CREATION_VIEW", creationId: id } : null,
+  );
   const [selected, setSelected] = useState(0);
 
   const title = creation.data?.title;
@@ -180,6 +191,14 @@ export function CreationPage() {
                   href={whatsappLink}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() =>
+                    trackEvent({
+                      type: "WHATSAPP_CLICK",
+                      businessSlug: business.slug,
+                      creationId: data.id,
+                      source: "creation_page",
+                    })
+                  }
                   className="rounded-full bg-terracotta px-5 py-2.5 font-medium text-white hover:bg-terracotta-dark"
                 >
                   Enquire on WhatsApp
@@ -190,6 +209,14 @@ export function CreationPage() {
                   href={websiteUrl}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() =>
+                    trackEvent({
+                      type: "WEBSITE_CLICK",
+                      businessSlug: business.slug,
+                      creationId: data.id,
+                      source: "creation_page",
+                    })
+                  }
                   className="rounded-full border border-ink-muted/40 bg-white px-5 py-2.5 font-medium hover:bg-cream"
                 >
                   Visit website
@@ -206,6 +233,28 @@ export function CreationPage() {
               You’ll be taken to the seller’s own WhatsApp or website. Ask them directly about
               pricing and availability.
             </p>
+            {whatsappLink && supportsQuoteRequests(data.category.slug) ? (
+              <div className="mt-4 border-t border-sand pt-4">
+                <p className="mb-3 text-sm text-ink-muted">
+                  Need something tailored? Share the details and we’ll prepare a message for you.
+                </p>
+                <QuoteRequestForm
+                  businessName={business.name}
+                  whatsappNumber={business.whatsappNumber}
+                  subject={data.title}
+                  defaultServiceType={data.category.name}
+                  pageUrl={creationUrl}
+                  onOpen={() =>
+                    trackEvent({
+                      type: "WHATSAPP_CLICK",
+                      businessSlug: business.slug,
+                      creationId: data.id,
+                      source: "quote",
+                    })
+                  }
+                />
+              </div>
+            ) : null}
           </section>
         </section>
       </div>

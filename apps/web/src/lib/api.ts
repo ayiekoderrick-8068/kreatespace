@@ -1,5 +1,8 @@
 const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
 
+/** Full URL for an API path, honouring a separately hosted API. */
+export const apiUrl = (path: string) => `${API_BASE}${path}`;
+
 /** An error response from the KreateSpace API. */
 export class ApiError extends Error {
   constructor(

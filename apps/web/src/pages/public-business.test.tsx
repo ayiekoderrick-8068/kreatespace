@@ -15,6 +15,7 @@ const business = {
   ],
   creations: [] as ReturnType<typeof card>[],
   hasMoreCreations: false,
+  packages: [] as unknown[],
   county: "Nairobi",
   city: "Westlands",
   websiteUrl: "https://cakes-by-maria.vercel.app",
