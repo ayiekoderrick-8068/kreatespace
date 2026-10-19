@@ -1,5 +1,6 @@
 import type { UserRole } from "@kreatespace/shared";
 import type { PrismaClient } from "../generated/prisma/client.js";
+import { HttpError } from "../http/errors.js";
 import type { VerifiedToken } from "./token-verifier.js";
 
 export type { UserRole };
@@ -17,19 +18,30 @@ export interface UserStore {
 }
 
 export function createPrismaUserStore(prisma: PrismaClient): UserStore {
+  const select = { id: true, email: true, fullName: true, role: true } as const;
+
   return {
     async findOrCreate(identity) {
-      // Roles are never taken from the token: new accounts are always customers.
-      return prisma.user.upsert({
-        where: { id: identity.userId },
-        update: {},
-        create: {
-          id: identity.userId,
-          email: identity.email,
-          fullName: identity.fullName ?? null,
-        },
-        select: { id: true, email: true, fullName: true, role: true },
-      });
+      // A new user's first requests often arrive together (for example the page's profile lookup
+      // and a pending action right after login). An atomic insert lets exactly one of them
+      // create the row while the rest simply read it. Roles are never taken from the token:
+      // new accounts are always customers.
+      await prisma.$executeRaw`
+        INSERT INTO "users" ("id", "email", "fullName", "role", "updatedAt")
+        VALUES (${identity.userId}::uuid, ${identity.email}, ${identity.fullName ?? null},
+                'CUSTOMER'::"UserRole", now())
+        ON CONFLICT DO NOTHING`;
+
+      const user = await prisma.user.findUnique({ where: { id: identity.userId }, select });
+      if (!user) {
+        // The insert was skipped by the unique email constraint: another account owns this email.
+        throw new HttpError(
+          409,
+          "ACCOUNT_CONFLICT",
+          "This email address belongs to a different account",
+        );
+      }
+      return user;
     },
   };
 }
