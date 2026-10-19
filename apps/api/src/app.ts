@@ -7,6 +7,7 @@ import type { Env } from "./config/env.js";
 import type { PrismaClient } from "./generated/prisma/client.js";
 import { HttpError } from "./http/errors.js";
 import { createRateLimiter } from "./http/rate-limit.js";
+import { adminAnalyticsRoutes, sellerAnalyticsRoutes } from "./analytics/routes.js";
 import { adminBusinessRoutes } from "./businesses/admin-routes.js";
 import { categoryRoutes, sellerBusinessRoutes } from "./businesses/routes.js";
 import { adminInvitationRoutes, inviteeInvitationRoutes } from "./invitations/routes.js";
@@ -105,6 +106,8 @@ export function createApp(
     app.use("/api/creations", sellerCreationRoutes(businessDeps));
     app.use("/api/packages", sellerPackageRoutes(businessDeps));
     app.use("/api/admin/packages", adminPackageRoutes(businessDeps));
+    app.use("/api/admin/analytics", adminAnalyticsRoutes(businessDeps));
+    app.use("/api/analytics", sellerAnalyticsRoutes(businessDeps));
     app.use("/api/businesses", sellerBusinessRoutes(businessDeps));
   } else {
     app.use(
@@ -118,6 +121,7 @@ export function createApp(
         "/api/creations",
         "/api/occasions",
         "/api/packages",
+        "/api/analytics",
       ],
       unavailable,
     );
