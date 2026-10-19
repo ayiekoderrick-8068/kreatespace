@@ -142,6 +142,17 @@ function ApprovedView({ data }: { data: OwnBusiness }) {
       ) : null}
 
       <PortfolioPanel />
+
+      <Card title="Grow your business">
+        <ul className="space-y-2 text-sm">
+          <li>
+            <Link to="/seller/analytics" className="font-medium text-terracotta underline">
+              View your analytics
+            </Link>
+            <span className="text-ink-muted"> — how customers find and contact you</span>
+          </li>
+        </ul>
+      </Card>
     </>
   );
 }

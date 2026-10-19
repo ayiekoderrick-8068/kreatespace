@@ -43,6 +43,11 @@ const PackageReviewPage = lazyPage(
   "PackageReviewPage",
 );
 const PackagesPage = lazyPage(() => import("./pages/seller/PackagesPage"), "PackagesPage");
+const AnalyticsPage = lazyPage(() => import("./pages/seller/AnalyticsPage"), "AnalyticsPage");
+const AnalyticsAdminPage = lazyPage(
+  () => import("./pages/admin/AnalyticsAdminPage"),
+  "AnalyticsAdminPage",
+);
 const InvitationsPage = lazyPage(() => import("./pages/admin/InvitationsPage"), "InvitationsPage");
 const InvitePage = lazyPage(() => import("./pages/InvitePage"), "InvitePage");
 const SellerDashboardPage = lazyPage(
@@ -96,6 +101,14 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: "/seller/analytics",
+        element: (
+          <RequireRole roles={["SELLER"]}>
+            <AnalyticsPage />
+          </RequireRole>
+        ),
+      },
+      {
         path: "/seller/creations/new",
         element: (
           <RequireRole roles={["SELLER"]}>
@@ -143,6 +156,7 @@ export const routes: RouteObject[] = [
           { path: "packages", element: <PackagesAdminPage /> },
           { path: "packages/:id", element: <PackageReviewPage /> },
           { path: "invitations", element: <InvitationsPage /> },
+          { path: "analytics", element: <AnalyticsAdminPage /> },
         ],
       },
       { path: "*", element: <NotFoundPage /> },
