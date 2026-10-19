@@ -34,6 +34,8 @@ export const adminRoutes: [Method, string][] = [
   ["get", `/api/admin/imports/items/${ID}`],
   ["post", `/api/admin/imports/items/${ID}/accept`],
   ["post", `/api/admin/imports/items/${ID}/reject`],
+  ["get", "/api/admin/deletions"],
+  ["post", `/api/admin/deletions/${ID}/decision`],
 ];
 
 export const sellerRoutes: [Method, string][] = [
@@ -76,6 +78,10 @@ export const signedInRoutes: [Method, string][] = [
   ["get", "/api/me/saved/ids"],
   ["put", `/api/me/saved/${ID}`],
   ["delete", `/api/me/saved/${ID}`],
+  ["get", "/api/me/deletion"],
+  ["post", "/api/me/deletion"],
+  ["delete", "/api/me/deletion"],
+  ["get", "/api/me/export"],
 ];
 
 /** Open to everyone on purpose: published content, filters, and anonymous analytics events. */

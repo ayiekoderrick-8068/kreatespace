@@ -20,6 +20,8 @@ export interface MediaStorage {
   download(path: string): Promise<Buffer | null>;
   /** Deletes objects. Missing objects are ignored. */
   remove(paths: string[]): Promise<void>;
+  /** Deletes every object under a folder, at any depth, and returns how many there were. */
+  removeFolder(prefix: string): Promise<number>;
   /**
    * Optional: resized renditions for responsive images. Storage that cannot transform images
    * leaves this out and callers fall back to the original.
@@ -126,6 +128,30 @@ export function createSupabaseMediaStorage(config: SupabaseStorageConfig): Media
       if (paths.length === 0) return;
       const { error } = await bucket().remove(paths);
       if (error) throw new Error(`Could not remove images: ${error.message}`);
+    },
+
+    async removeFolder(prefix) {
+      // Collect first, then delete, so removing files never disturbs the listing being read.
+      const files: string[] = [];
+      const folders = [prefix.replace(/\/+$/, "")];
+      while (folders.length > 0) {
+        const folder = folders.pop()!;
+        for (let offset = 0; ; offset += 100) {
+          const { data, error } = await bucket().list(folder, { limit: 100, offset });
+          if (error) throw new Error(`Could not list images: ${error.message}`);
+          for (const item of data ?? []) {
+            // Folders have no id; files do.
+            if (item.id === null) folders.push(`${folder}/${item.name}`);
+            else files.push(`${folder}/${item.name}`);
+          }
+          if ((data?.length ?? 0) < 100) break;
+        }
+      }
+      for (let start = 0; start < files.length; start += 100) {
+        const { error } = await bucket().remove(files.slice(start, start + 100));
+        if (error) throw new Error(`Could not remove images: ${error.message}`);
+      }
+      return files.length;
     },
 
     async listFolder(prefix) {

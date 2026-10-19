@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { processAccountDeletions, purgeDeletionTombstones } from "../accounts/deletion.js";
+import { createSupabaseAuthAdmin } from "../auth/supabase-admin.js";
 import { loadEnv } from "../config/env.js";
 import { failStaleJobs } from "../imports/service.js";
 import { purgeOldInquiryEvents } from "../inquiries/service.js";
@@ -11,7 +13,8 @@ import { createSupabaseMediaStorage } from "../storage/media-storage.js";
 // It is safe to run as often as you like and never touches live content:
 //   - removes analytics events older than the retention period (13 months),
 //   - deletes uploaded photos that never became part of a creation (older than a day),
-//   - marks imports that were interrupted by a restart as failed.
+//   - marks imports that were interrupted by a restart as failed,
+//   - carries out account deletions whose waiting period (and, for businesses, review) is over.
 async function main() {
   const env = loadEnv();
   const prisma = getPrisma();
@@ -30,9 +33,26 @@ async function main() {
     });
     const { removed } = await cleanupOrphanedUploads(prisma, storage);
     console.log(`Abandoned uploads deleted: ${removed}`);
+
+    const deletions = await processAccountDeletions(prisma, {
+      storage,
+      authAdmin: createSupabaseAuthAdmin({
+        supabaseUrl: env.SUPABASE_URL,
+        serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      }),
+    });
+    console.log(
+      `Account deletions: ${deletions.completed} completed, ${deletions.waiting} waiting, ${deletions.failed} failed`,
+    );
+    if (deletions.failed > 0) process.exitCode = 1; // so the scheduler shows the run as failed
   } else {
-    console.log("Storage is not configured, so abandoned uploads were not checked.");
+    console.log(
+      "Storage and sign-in admin are not configured, so abandoned uploads and account deletions were not processed.",
+    );
   }
+
+  const forgotten = await purgeDeletionTombstones(prisma);
+  console.log(`Deleted-account markers forgotten after their short window: ${forgotten}`);
 }
 
 main()

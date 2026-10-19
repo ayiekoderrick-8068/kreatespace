@@ -51,7 +51,7 @@ describe.skipIf(!hasDatabase)("authorization of every API route", () => {
   ];
 
   it("lists the expected number of guarded routes", () => {
-    expect(adminRoutes).toHaveLength(25);
+    expect(adminRoutes).toHaveLength(27);
     expect(sellerRoutes).toHaveLength(30);
   });
 

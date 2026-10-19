@@ -43,6 +43,8 @@ model User {
   importGrants        ImportAuthorization[]    @relation("ImportGrantedBy")
   importJobsStarted   ImportJob[]              @relation("ImportJobRequester")
   importDecisions     ImportItem[]             @relation("ImportItemDecider")
+  deletionRequests    AccountDeletionRequest[] @relation("DeletionSubject")
+  deletionsReviewed   AccountDeletionRequest[] @relation("DeletionReviewer")
 
   @@map("users")
 }
@@ -541,4 +543,47 @@ model ImportItem {
   @@index([jobId, status])
   @@index([businessId, contentHash])
   @@map("import_items")
+}
+
+enum DeletionStatus {
+  /// Waiting out the delay (customers), or waiting for an administrator's check (business owners).
+  REQUESTED
+  /// An administrator has agreed; it is carried out once the delay has passed.
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+/// A person's request to have their account deleted. The record outlives the account on purpose, as
+/// proof that a deletion happened, so it holds no email, name or other personal detail: `userId` is
+/// cleared when the account goes, and only counts are kept in `summary`.
+model AccountDeletionRequest {
+  id            String         @id @default(uuid()) @db.Uuid
+  userId        String?        @db.Uuid
+  /// The deleted account's opaque id, kept for a short time so a sign-in token that is still valid
+  /// cannot quietly recreate the account. Cleared by the maintenance job.
+  deletedUserId String?        @db.Uuid
+  roleAtRequest UserRole
+  hadBusiness   Boolean
+  status        DeletionStatus @default(REQUESTED)
+  requestedAt   DateTime       @default(now())
+  /// The earliest time it may be carried out.
+  scheduledFor  DateTime
+  reviewedById  String?        @db.Uuid
+  reviewedAt    DateTime?
+  /// Shown to the person if the request is refused.
+  reviewNote    String?
+  completedAt   DateTime?
+  cancelledAt   DateTime?
+  /// Counts of what was deleted. Never personal details.
+  summary       Json?
+
+  user       User? @relation("DeletionSubject", fields: [userId], references: [id], onDelete: SetNull)
+  reviewedBy User? @relation("DeletionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledFor])
+  @@index([userId])
+  @@index([deletedUserId])
+  @@map("account_deletion_requests")
 }

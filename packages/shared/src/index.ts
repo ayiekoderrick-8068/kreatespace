@@ -1,6 +1,7 @@
 export const PLATFORM_NAME = "KreateSpace";
 export const PLATFORM_TAGLINE = "Discover. Connect. Create.";
 
+export * from "./account.js";
 export * from "./analytics.js";
 export * from "./auth.js";
 export * from "./businesses.js";

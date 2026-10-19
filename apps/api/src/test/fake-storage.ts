@@ -69,6 +69,16 @@ export function createFakeStorage() {
       if (!files.has(path)) return null;
       return blobs.get(path) ?? fakePng();
     },
+    async removeFolder(prefix) {
+      const folder = prefix.replace(/\/+$/, "") + "/";
+      const doomed = [...files].filter((p) => p.startsWith(folder));
+      for (const path of doomed) {
+        files.delete(path);
+        blobs.delete(path);
+        ages.delete(path);
+      }
+      return doomed.length;
+    },
     async remove(paths) {
       for (const path of paths) {
         files.delete(path);

@@ -22,6 +22,17 @@ export function createPrismaUserStore(prisma: PrismaClient): UserStore {
 
   return {
     async findOrCreate(identity) {
+      const existing = await prisma.user.findUnique({ where: { id: identity.userId }, select });
+      if (existing) return existing;
+
+      // A deleted account's sign-in token stays valid for a while after the identity is removed.
+      // Without this check, using it would create a fresh empty account.
+      const deleted = await prisma.accountDeletionRequest.findFirst({
+        where: { deletedUserId: identity.userId, status: "COMPLETED" },
+        select: { id: true },
+      });
+      if (deleted) throw new HttpError(401, "ACCOUNT_DELETED", "This account has been deleted");
+
       // A new user's first requests often arrive together (for example the page's profile lookup
       // and a pending action right after login). An atomic insert lets exactly one of them
       // create the row while the rest simply read it. Roles are never taken from the token:

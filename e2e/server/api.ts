@@ -50,6 +50,12 @@ const storage: MediaStorage = {
     // Whatever the browser "uploaded" reads back as a valid 800x1000 PNG.
     return stored.has(path) ? fakePng(800, 1000) : null;
   },
+  async removeFolder(prefix) {
+    const folder = prefix.replace(/\/+$/, "") + "/";
+    const doomed = [...stored].filter((p) => p.startsWith(folder));
+    for (const path of doomed) stored.delete(path);
+    return doomed.length;
+  },
   async remove(paths) {
     for (const path of paths) stored.delete(path);
   },
