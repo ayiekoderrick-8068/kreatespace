@@ -2,6 +2,7 @@ import { cardSelect, toCards, type CreationCard } from "../discovery/service.js"
 import { visibleCreation } from "../discovery/visibility.js";
 import type { PrismaClient } from "../generated/prisma/client.js";
 import { notFound } from "../http/errors.js";
+import { listPublicPackages, type PublicPackage } from "../packages/service.js";
 import { resolveImages } from "../storage/image-urls.js";
 import type { MediaStorage } from "../storage/media-storage.js";
 
@@ -26,6 +27,8 @@ export interface PublicBusinessView {
   /** Live creations, newest first. */
   creations: CreationCard[];
   hasMoreCreations: boolean;
+  /** Approved service packages, newest approved version only. */
+  packages: PublicPackage[];
 }
 
 /**
@@ -60,7 +63,7 @@ export async function getPublicBusiness(
   const revision = business?.publishedRevision;
   if (!business || !revision) throw notFound("Business not found");
 
-  const [creationRows, creationCategories] = await Promise.all([
+  const [creationRows, creationCategories, packages] = await Promise.all([
     prisma.creation.findMany({
       where: { businessId: business.id, ...visibleCreation },
       orderBy: [{ publishedAt: "desc" }, { id: "asc" }],
@@ -72,6 +75,7 @@ export async function getPublicBusiness(
       distinct: ["categoryId"],
       select: { category: { select: { slug: true, name: true } } },
     }),
+    listPublicPackages(prisma, storage, business.id),
   ]);
 
   const paths = [
@@ -103,5 +107,6 @@ export async function getPublicBusiness(
     }),
     creations,
     hasMoreCreations: creationRows.length > PROFILE_CREATION_LIMIT,
+    packages,
   };
 }

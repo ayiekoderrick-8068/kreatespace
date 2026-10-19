@@ -14,6 +14,7 @@ import { discoveryRoutes } from "./discovery/routes.js";
 import { adminCreationRoutes } from "./portfolio/admin-routes.js";
 import { sellerCreationRoutes } from "./portfolio/routes.js";
 import { savedRoutes } from "./discovery/saved-routes.js";
+import { adminPackageRoutes, sellerPackageRoutes } from "./packages/routes.js";
 import { publicRoutes } from "./public/routes.js";
 import type { MediaStorage } from "./storage/media-storage.js";
 
@@ -90,6 +91,8 @@ export function createApp(
     app.use("/api/public", discoveryRoutes(businessDeps));
     app.use("/api/me/saved", savedRoutes(businessDeps));
     app.use("/api/creations", sellerCreationRoutes(businessDeps));
+    app.use("/api/packages", sellerPackageRoutes(businessDeps));
+    app.use("/api/admin/packages", adminPackageRoutes(businessDeps));
     app.use("/api/businesses", sellerBusinessRoutes(businessDeps));
   } else {
     app.use(
@@ -101,6 +104,7 @@ export function createApp(
         "/api/public",
         "/api/me/saved",
         "/api/creations",
+        "/api/packages",
       ],
       unavailable,
     );

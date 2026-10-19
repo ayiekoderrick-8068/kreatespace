@@ -51,3 +51,50 @@ export const adminCreationListQuerySchema = z.object({
 export type CreationDetailsInput = z.input<typeof creationDetailsSchema>;
 export type CreationDetails = z.output<typeof creationDetailsSchema>;
 export type CreationDraftInput = z.input<typeof creationDraftSchema>;
+
+/** Optional service packages a business can offer (for example a wedding photography package). */
+export const MAX_PACKAGES = 10;
+
+export const packageContentSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(3, "Give the package a name of at least 3 characters")
+    .max(80, "Name must be 80 characters or fewer"),
+  description: z
+    .string()
+    .trim()
+    .min(10, "Describe the package in at least 10 characters")
+    .max(600, "Description must be 600 characters or fewer"),
+  /** What the customer gets, one item per line (for example "Edited photographs"). */
+  includes: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(2, "Each included item needs at least 2 characters")
+        .max(100, "Each included item must be 100 characters or fewer"),
+    )
+    .min(1, "List at least one thing the package includes")
+    .max(10, "List up to 10 included items"),
+  /** Optional starting price in Kenyan shillings. Never filled in for the seller. */
+  startingPriceKes: z
+    .number({ error: "Enter the price as a number" })
+    .int("Enter a whole number of shillings")
+    .min(1, "The price must be at least KSh 1")
+    .max(10_000_000, "The price is too high")
+    .nullable()
+    .optional(),
+});
+
+export const packageDraftSchema = packageContentSchema.partial();
+
+export const adminPackageListQuerySchema = z.object({
+  state: z.enum(["DRAFT", "PENDING", "CHANGES_REQUESTED", "APPROVED", "REJECTED"]).optional(),
+  status: z.enum(["ACTIVE", "ARCHIVED", "SUSPENDED"]).optional(),
+  businessId: z.preprocess((v) => (v === "" ? undefined : v), z.uuid().optional()),
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+});
+
+export type PackageContent = z.output<typeof packageContentSchema>;
+export type PackageContentInput = z.input<typeof packageContentSchema>;

@@ -39,6 +39,7 @@ model User {
   reviewDecisions     ReviewDecision[]         @relation("ReviewDecisionAdmin")
   savedCreations      SavedCreation[]
   creationDecisions   CreationReviewDecision[] @relation("CreationDecisionAdmin")
+  packageDecisions    PackageReviewDecision[]  @relation("PackageDecisionAdmin")
 
   @@map("users")
 }
@@ -137,6 +138,7 @@ model Business {
   publishedRevision BusinessRevision?  @relation("PublishedRevision", fields: [publishedRevisionId], references: [id], onDelete: SetNull)
   decisions         ReviewDecision[]
   creations         Creation[]
+  packages          ServicePackage[]
 
   @@index([status])
   @@map("businesses")
@@ -322,4 +324,48 @@ model CreationReviewDecision {
 
   @@index([creationId, createdAt])
   @@map("creation_review_decisions")
+}
+
+enum PackageStatus {
+  ACTIVE
+  ARCHIVED
+  SUSPENDED
+}
+
+/// An optional service package. `draft` is what the owner is editing; `published` is the last
+/// approved version, and the only one visitors ever see.
+model ServicePackage {
+  id          String         @id @default(uuid()) @db.Uuid
+  businessId  String         @db.Uuid
+  status      PackageStatus  @default(ACTIVE)
+  reviewState RevisionStatus @default(DRAFT)
+  draft       Json
+  published   Json?
+  submittedAt DateTime?
+  publishedAt DateTime?
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  business  Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  decisions PackageReviewDecision[]
+
+  @@index([businessId, status])
+  @@index([reviewState])
+  @@map("service_packages")
+}
+
+model PackageReviewDecision {
+  id        String       @id @default(uuid()) @db.Uuid
+  packageId String       @db.Uuid
+  adminId   String       @db.Uuid
+  action    ReviewAction
+  reason    String?
+  createdAt DateTime     @default(now())
+
+  package ServicePackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  admin   User           @relation("PackageDecisionAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+
+  @@index([packageId, createdAt])
+  @@map("package_review_decisions")
 }
