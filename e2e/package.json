@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test:e2e": "playwright test",
+    "check:csp": "node support/csp-check.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
