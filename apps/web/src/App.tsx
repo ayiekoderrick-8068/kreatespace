@@ -13,6 +13,7 @@ import { HomePage } from "./pages/HomePage";
 import { InvitePage } from "./pages/InvitePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { PublicBusinessPage } from "./pages/PublicBusinessPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { SellerDashboardPage } from "./pages/seller/SellerDashboardPage";
@@ -29,6 +30,7 @@ export const routes: RouteObject[] = [
     children: [
       { path: "/", element: <HomePage /> },
       { path: "/invite/:token", element: <InvitePage /> },
+      { path: "/businesses/:slug", element: <PublicBusinessPage /> },
       {
         path: "/seller",
         element: (
