@@ -50,6 +50,7 @@ export async function seedSite(browser: Browser): Promise<SiteFixture> {
       ["seller packages", "/seller/packages"],
       ["new creation", "/seller/creations/new"],
       ["edit profile", "/seller/edit"],
+      ["account and deletion", "/account"],
     ],
     adminPages: [
       ["admin businesses", "/admin/businesses"],
@@ -58,6 +59,7 @@ export async function seedSite(browser: Browser): Promise<SiteFixture> {
       ["admin invitations", "/admin/invitations"],
       ["admin website requests", "/admin/website-requests"],
       ["admin imports", "/admin/imports"],
+      ["admin deletions", "/admin/deletions"],
       ["admin analytics", "/admin/analytics"],
     ],
   };

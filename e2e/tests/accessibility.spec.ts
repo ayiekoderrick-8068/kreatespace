@@ -28,7 +28,12 @@ async function audit(page: Page, name: string, path: string) {
   await page.goto(path);
   await expect(page.locator("main, h1").first()).toBeVisible();
   await page.waitForLoadState("networkidle");
-  expect(await violations(page), `${name} (${path})`).toEqual([]);
+  // Checked until clean, for up to 15 s: the development server now and then reloads the page the
+  // first time it meets a new library, and a half-drawn page lacks a main area and a heading. A
+  // real violation stays and fails when the time is up.
+  await expect
+    .poll(() => violations(page), { message: `${name} (${path})`, timeout: 15_000 })
+    .toEqual([]);
 }
 
 test("public pages have no automated accessibility violations", async ({ browser }) => {
