@@ -82,4 +82,33 @@ fi
 migrations="$(psql "$server/$SCRATCH_DB" -qAt -c "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL")"
 echo "    row-level security intact; $migrations migrations recorded"
 
+# Triggers and functions keep data consistent (search documents, creation limits); a restore that
+# silently dropped them would look fine in the row counts.
+logic="SELECT
+    (SELECT count(*) FROM pg_trigger WHERE NOT tgisinternal) || ' triggers, ' ||
+    (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+       WHERE n.nspname = 'public') || ' functions'"
+source_logic="$(psql "$SOURCE_DATABASE_URL" -qAt -c "$logic")"
+restored_logic="$(psql "$server/$SCRATCH_DB" -qAt -c "$logic")"
+if [[ "$source_logic" != "$restored_logic" ]]; then
+  echo "FAILED: the source has $source_logic but the restored copy has $restored_logic." >&2
+  exit 1
+fi
+echo "    database logic intact: $restored_logic"
+
+# The restore leaves out privileges (--no-privileges), so functions come back open to everyone
+# until scripts/after-restore.sql is run. Show that, run it, and check it closed them.
+open_functions="SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.prorettype <> 'pg_catalog.trigger'::regtype
+    AND (p.proacl IS NULL OR EXISTS (SELECT 1 FROM aclexplode(p.proacl) a
+         WHERE a.grantee = 0 AND a.privilege_type = 'EXECUTE'))"
+before="$(psql "$server/$SCRATCH_DB" -qAt -c "$open_functions")"
+psql "$server/$SCRATCH_DB" -qAt -v ON_ERROR_STOP=1 -f "$(dirname "$0")/after-restore.sql" >/dev/null
+after="$(psql "$server/$SCRATCH_DB" -qAt -c "$open_functions")"
+if [[ "$after" != "0" ]]; then
+  echo "FAILED: $after function(s) are still open to everyone after scripts/after-restore.sql." >&2
+  exit 1
+fi
+echo "    functions open to everyone: $before after the restore, $after after scripts/after-restore.sql"
+
 echo "Restore drill PASSED. Nothing in the source was changed."

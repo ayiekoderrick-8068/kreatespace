@@ -40,7 +40,9 @@ photo backup does not contain the database. Back up both.
 A backup you have never restored is a guess. `scripts/restore-drill.sh` rehearses it without
 touching production: it takes a backup of the database you point it at (read-only), restores it into
 a new throw-away database on a **separate** server, compares every table's row count, checks that
-row-level security survived, and drops the scratch database afterwards.
+row-level security survived, that the database's triggers and functions came back, that
+`scripts/after-restore.sql` closes the functions the restore leaves open (see below), and drops the
+scratch database afterwards.
 
 ```bash
 SOURCE_DATABASE_URL="postgresql://…/postgres"       # production (read-only use)
@@ -54,17 +56,25 @@ database yourself and run `pg_restore --no-owner --no-privileges --dbname=<scrat
 then `pnpm --filter @kreatespace/api exec prisma migrate status` against it (it should say the
 schema is up to date).
 
-Run the drill before launch and then monthly. A drill on seeded data in this repository restored an
-81 KB dump with identical counts in all 22 tables, 12 migrations recorded, and row-level security
-intact on every table. That proves the procedure, **not** your production backups: run it against
-your own.
+Run the drill before launch and then monthly. A drill on 20 October 2026, on this repository's test
+database, restored an 89 KB dump with identical counts in all 24 tables, 16 migrations recorded,
+row-level security intact on every table, and all 9 triggers and 9 functions present. That proves
+the procedure, **not** your production backups: run it against your own (the test database held no
+real content, so search documents and the like were not exercised with data).
+
+**A restore leaves one thing undone.** The dump is taken with `--no-privileges`, so the "who may run
+what" settings are not restored. The drill measured it: after the restore, the search function was
+open to everyone (on Supabase, callable through the public REST API by anyone with the public key)
+until `scripts/after-restore.sql` was run, after which none were. Always run it after a real restore.
 
 ### Restoring for real
 
 1. Stop writes: put the API in maintenance (stop the Render service) so nothing changes mid-restore.
 2. Take a fresh dump of the damaged database first, in case something in it is still useful.
 3. Restore into a **new** database or project (not on top of the old one) from the backup you
-   chose; check it with the drill's comparisons and `prisma migrate status`.
+   chose; check it with the drill's comparisons and `prisma migrate status`, then run
+   `psql "<restored-database-url>" -f scripts/after-restore.sql`.
+   Also re-apply account deletions completed since the backup (`docs/ACCOUNT_DELETION.md`).
 4. Point `DATABASE_URL` at the restored database, start the API, and check `/api/health` and a
    customer journey.
 5. Accounts live in Supabase Auth, not in this database. If you restore into a _different_ Supabase
