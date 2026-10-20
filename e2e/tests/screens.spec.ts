@@ -1,5 +1,5 @@
 import { mkdirSync } from "node:fs";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { closeDatabase } from "../support/data.ts";
 import { ADMIN_EMAIL, seedSite, signedIn } from "../support/site.ts";
 import { newActor } from "../support/actors.ts";
@@ -27,7 +27,7 @@ test("saves a picture of every screen at this device size", async ({ browser }, 
   mkdirSync(folder, { recursive: true });
 
   const site = await seedSite(browser);
-  const snap = async (page: import("@playwright/test").Page, name: string, path: string) => {
+  const snap = async (page: Page, name: string, path: string) => {
     await page.goto(path);
     await expect(page.locator("main, h1").first()).toBeVisible();
     await page.waitForLoadState("networkidle");
