@@ -31,6 +31,10 @@ services:
         value: business-media
       - key: SUPABASE_IMAGE_TRANSFORMS
         value: "false"
+      - key: ERROR_WEBHOOK_URL
+        sync: false # optional: https incoming-webhook address for error alerts (docs/OPERATIONS.md)
+      - key: RATE_LIMIT_STORE
+        value: memory # change to "postgres" before running more than one instance
       - key: WEB_URL
         sync: false # https address of the website, e.g. https://www.example.com
       - key: API_URL
@@ -38,7 +42,8 @@ services:
       - key: CORS_ORIGIN
         sync: false # the same address as WEB_URL (comma-separate more than one)
 
-  # Daily housekeeping: old analytics events, abandoned uploads, interrupted imports.
+  # Daily housekeeping: old analytics events, abandoned uploads, interrupted imports, expired
+  # rate-limit counters, and account deletions that are due (docs/ACCOUNT_DELETION.md).
   - type: cron
     name: kreatespace-maintenance
     runtime: node
@@ -60,6 +65,8 @@ services:
         sync: false
       - key: SUPABASE_STORAGE_BUCKET
         value: business-media
+      - key: ERROR_WEBHOOK_URL
+        sync: false # optional: the same alert address as the API
       - key: WEB_URL
         sync: false
       - key: API_URL

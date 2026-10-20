@@ -3,6 +3,7 @@ import { processAccountDeletions, purgeDeletionTombstones } from "../accounts/de
 import { createSupabaseAuthAdmin } from "../auth/supabase-admin.js";
 import { loadEnv } from "../config/env.js";
 import { purgeExpiredRateLimits } from "../http/pg-rate-limit-store.js";
+import { createWebhookReporter, reportError, setErrorReporter } from "../http/report.js";
 import { failStaleJobs } from "../imports/service.js";
 import { purgeOldInquiryEvents } from "../inquiries/service.js";
 import { disconnectPrisma, getPrisma } from "../lib/prisma.js";
@@ -18,6 +19,7 @@ import { createSupabaseMediaStorage } from "../storage/media-storage.js";
 //   - carries out account deletions whose waiting period (and, for businesses, review) is over.
 async function main() {
   const env = loadEnv();
+  if (env.ERROR_WEBHOOK_URL) setErrorReporter(createWebhookReporter(env.ERROR_WEBHOOK_URL));
   const prisma = getPrisma();
 
   const purged = await purgeOldInquiryEvents(prisma);
@@ -45,7 +47,14 @@ async function main() {
     console.log(
       `Account deletions: ${deletions.completed} completed, ${deletions.waiting} waiting, ${deletions.failed} failed`,
     );
-    if (deletions.failed > 0) process.exitCode = 1; // so the scheduler shows the run as failed
+    if (deletions.failed > 0) {
+      process.exitCode = 1; // so the scheduler shows the run as failed
+      await reportError(
+        new Error(`${deletions.failed} account deletion(s) failed and will be retried`),
+        "account deletions",
+        "maintenance",
+      );
+    }
   } else {
     console.log(
       "Storage and sign-in admin are not configured, so abandoned uploads and account deletions were not processed.",
@@ -60,8 +69,9 @@ async function main() {
 }
 
 main()
-  .catch((error) => {
+  .catch(async (error) => {
     console.error("Maintenance failed:", error instanceof Error ? error.message : error);
     process.exitCode = 1;
+    await reportError(error, "maintenance", "maintenance");
   })
   .finally(disconnectPrisma);

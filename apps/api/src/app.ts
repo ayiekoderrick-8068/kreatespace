@@ -7,6 +7,7 @@ import type { Env } from "./config/env.js";
 import type { PrismaClient } from "./generated/prisma/client.js";
 import { HttpError } from "./http/errors.js";
 import { describeError } from "./http/log.js";
+import { reportError } from "./http/report.js";
 import { createRateLimiter, type RateLimitOptions } from "./http/rate-limit.js";
 import type { Store } from "express-rate-limit";
 import { accountRoutes, adminDeletionRoutes } from "./accounts/routes.js";
@@ -50,6 +51,19 @@ export interface AppDeps {
   rateLimitStore?: (prefix: string) => Store;
   /** Website importer settings; tests replace the fetcher to reach a local server. */
   importer?: Partial<ImporterDeps>;
+}
+
+/**
+ * Names a request for an error alert: the method and path, with the query dropped and anything
+ * that looks like an id or a token replaced, so alerts never carry values people typed or were sent.
+ */
+function routeLabel(method: string, originalUrl: string): string {
+  const path = originalUrl
+    .split("?")[0]!
+    .split("/")
+    .map((segment) => (/^[0-9a-f-]{8,}$/i.test(segment) || segment.length >= 24 ? ":id" : segment))
+    .join("/");
+  return `${method} ${path}`;
 }
 
 const unavailable: RequestHandler = (_req, res) => {
@@ -192,7 +206,7 @@ export function createApp(
     res.status(404).json({ error: { code: "NOT_FOUND", message: "Resource not found" } });
   });
 
-  const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+  const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
     if (err instanceof HttpError) {
       res.status(err.status).json({
         error: { code: err.code, message: err.message, details: err.details },
@@ -205,6 +219,7 @@ export function createApp(
     if (status === 500) {
       // Log what is needed to diagnose without dumping request data or query values.
       console.error("Unhandled error", describeError(err));
+      void reportError(err, routeLabel(req.method, req.originalUrl));
     }
     res.status(status).json({
       error: {

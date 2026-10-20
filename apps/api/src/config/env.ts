@@ -22,6 +22,11 @@ const envSchema = z.object({
     .enum(["true", "false"])
     .default("true")
     .transform((value) => value === "true"),
+  /**
+   * Where to send an alert when the API hits an unexpected error (a chat or alerting tool's
+   * incoming-webhook address). Leave out to rely on logs and uptime checks alone.
+   */
+  ERROR_WEBHOOK_URL: z.url().optional(),
   /** Public URL of this API (used for stable link-preview image addresses). */
   API_URL: z.url().optional(),
   /** Public URL of the web app (used in invitation links). */
@@ -81,6 +86,9 @@ function assertProductionSafe(env: Env, source: NodeJS.ProcessEnv): void {
   }
   if (!env.ADMIN_MFA_REQUIRED) {
     problems.push("ADMIN_MFA_REQUIRED must not be switched off in production");
+  }
+  if (env.ERROR_WEBHOOK_URL && !env.ERROR_WEBHOOK_URL.startsWith("https://")) {
+    problems.push("ERROR_WEBHOOK_URL must use https");
   }
   if (!source.CORS_ORIGIN) problems.push("CORS_ORIGIN must be set to the web app's address");
   if (env.CORS_ORIGIN.some((origin) => origin === "*" || isLocal(origin))) {

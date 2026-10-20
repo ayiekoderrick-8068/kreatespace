@@ -80,9 +80,18 @@ your own.
 - **Logs:** the API writes to standard output; Render keeps and searches them. Errors are logged as
   `Unhandled error` with the error name, code and a short stack, deliberately without request bodies
   or query values. Passwords, tokens and WhatsApp numbers are never logged.
-- **Error tracking:** none is installed. Before wider launch consider adding a service such as
-  Sentry to both the API and the website; for a 15-business pilot, log review plus uptime alerts is
-  workable but slower to notice problems.
+- **Error alerts (API and daily job):** set `ERROR_WEBHOOK_URL` to the incoming-webhook address of a
+  chat or alerting tool (Slack-style tools, Better Stack, Make or Zapier all accept the JSON; the
+  `text` field is a one-line summary). The API then sends an alert for every unexpected server
+  error (HTTP 500), unhandled rejection or crash, and the daily job for a failed run or failed
+  account deletions. An alert holds only the error's name and code, the last line of its message,
+  five stack frames and the route with ids replaced (for example `GET /api/public/creations/:id`):
+  never request bodies, queries, headers or tokens. The same error alerts at most once every
+  10 minutes and at most 10 alerts go out per minute, so one fault is one alert. If the address is
+  down the API carries on and the error is still in the log. Production requires `https`. Without
+  it the API prints a warning at start-up and errors appear only in the logs. **Not done:** the
+  website's own browser errors are not reported anywhere, and there is no Sentry-style grouping or
+  history; add one of those before wider launch.
 - **Database:** watch Supabase's database size, connection count and slow queries in the dashboard.
 - **Capacity:** the API runs as a single instance (see `docs/DEPLOYMENT.md`).
 
@@ -90,7 +99,9 @@ your own.
 
 The daily `kreatespace-maintenance` job (`pnpm --filter @kreatespace/api maintenance`) removes
 analytics events older than 13 months, deletes photos that were uploaded but never used (older than
-a day), and marks imports interrupted by a restart as failed. It is idempotent.
+a day), marks imports interrupted by a restart as failed, removes expired rate-limit counters, and
+carries out account deletions that are due (`docs/ACCOUNT_DELETION.md`). It is idempotent. A run in
+which any account deletion fails exits with an error, so Render shows it as failed.
 
 ## When something goes wrong
 

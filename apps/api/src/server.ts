@@ -2,7 +2,9 @@ import { createApp, type AppDeps } from "./app.js";
 import { createSupabaseTokenVerifier } from "./auth/token-verifier.js";
 import { createPrismaUserStore } from "./auth/user-store.js";
 import { loadEnv } from "./config/env.js";
+import { describeError } from "./http/log.js";
 import { createPgRateLimitStore } from "./http/pg-rate-limit-store.js";
+import { createWebhookReporter, reportError, setErrorReporter } from "./http/report.js";
 import { failStaleJobs } from "./imports/service.js";
 import { getPrisma } from "./lib/prisma.js";
 import { createSupabaseMediaStorage } from "./storage/media-storage.js";
@@ -17,6 +19,12 @@ function readEnv() {
   }
 }
 const env = readEnv();
+
+if (env.ERROR_WEBHOOK_URL) {
+  setErrorReporter(createWebhookReporter(env.ERROR_WEBHOOK_URL));
+} else if (env.NODE_ENV === "production") {
+  console.warn("ERROR_WEBHOOK_URL is not set: unexpected errors will only appear in the logs");
+}
 
 const deps: AppDeps = {};
 if (env.SUPABASE_URL && env.DATABASE_URL) {
@@ -87,4 +95,16 @@ process.on("unhandledRejection", (reason) => {
     "Unhandled promise rejection",
     reason instanceof Error ? reason.name : typeof reason,
   );
+  void reportError(reason, "unhandled promise rejection");
+});
+
+// The process cannot be trusted after this, so it stops (and the host restarts it), but only after
+// the alert has had a moment to go out.
+process.on("uncaughtException", (error) => {
+  console.error("Uncaught exception", describeError(error));
+  const stop = () => process.exit(1);
+  void Promise.race([
+    reportError(error, "uncaught exception"),
+    new Promise((resolve) => setTimeout(resolve, 3_000)),
+  ]).finally(stop);
 });
