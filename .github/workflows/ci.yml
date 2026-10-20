@@ -37,7 +37,7 @@ jobs:
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kreatespace_test
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
 
@@ -95,7 +95,7 @@ jobs:
       E2E_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/kreatespace_e2e
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
 
