@@ -15,11 +15,11 @@
     "@hookform/resolvers": "^6.0.0",
     "@kreatespace/shared": "workspace:^",
     "@supabase/supabase-js": "^2.118.0",
-    "@tanstack/react-query": "^5.104.4",
+    "@tanstack/react-query": "^5.104.5",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-hook-form": "^7.90.0",
-    "react-router": "^8.4.0",
+    "react-hook-form": "^7.91.0",
+    "react-router": "^8.5.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -35,7 +35,7 @@
     "globals": "^17.13.0",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4.3.3",
-    "vite": "^8.3.4",
+    "vite": "^8.3.5",
     "vitest": "^5.0.5"
   }
 }
